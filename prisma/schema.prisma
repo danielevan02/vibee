@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" 
+  url      = env("DATABASE_URL")
+}
+
+// Model untuk Pengguna (User)
+model User {
+  id        String    @id @default(uuid())
+  clerkId   String    @unique
+  username  String    @unique
+  email     String    @unique
+  photo     String
+  password  String 
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
+}
+
+// Model untuk Postingan (Post)
+model Post {
+  id        String    @id @default(uuid())
+  content   String? // Konten tulisan
+  imageUrl  String? // URL gambar (jika ada)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  author    User      @relation(fields: [authorId], references: [id])
+  authorId  String
+  comments  Comment[]
+  likes     Like[]
+}
+
+// Model untuk Komentar (Comment)
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+}
+
+// Model untuk Like
+model Like {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+
+  @@unique([authorId, postId]) // Sebuah user hanya bisa memberikan 1 like per post
+}
