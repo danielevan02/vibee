@@ -13,7 +13,7 @@ export default function LoadingPage() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-5 w-screen h-screen">
+    <div className="relative flex flex-col items-center justify-center gap-2 w-screen h-screen">
       <div className="w-10 aspect-square">
         {mounted ? (
           <Image
@@ -34,6 +34,11 @@ export default function LoadingPage() {
         )}
       </div>
       <p className="tracking-widest">VIBEE</p>
+
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-center">
+        <p className="text-neutral-500">Made by</p>
+        <p className="font-extrabold text-lg bg-gradient-to-br text-transparent from-blue-900 via-blue-400 to-blue-200 bg-clip-text">Daniel Evan</p>
+      </div>
     </div>
   );
 }

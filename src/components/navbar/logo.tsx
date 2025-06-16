@@ -13,14 +13,14 @@ export default function Logo() {
   }, []);
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-1 md:gap-3">
       {mounted ? (
         <Image
           src={theme === 'light' ? "/black-logo.png":"/white-logo.png"}
           width={200}
           height={200}
           alt="VIBEE"
-          className="w-10 h-10"
+          className="w-8 h-8 md:w-10 md:h-10"
         />
       ):(
         <Image
@@ -28,10 +28,10 @@ export default function Logo() {
           width={200}
           height={200}
           alt="VIBEE"
-          className="w-10 h-10"
+          className="w-8 h-8 md:w-10 md:h-10"
         />
       )}
-      <p className="text-2xl bg-gradient-to-r bg-clip-text text-transparent from-blue-800 via-blue-400 to-blue-100">
+      <p className="text-lg md:text-2xl bg-gradient-to-r bg-clip-text text-transparent from-blue-800 via-blue-400 to-blue-100">
         VIBEE
       </p>
     </div>
