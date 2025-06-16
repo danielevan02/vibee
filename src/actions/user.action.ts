@@ -30,6 +30,7 @@ export async function onAuthenticateUser(){
       data: {
         clerkId: user.id,
         email: user.emailAddresses[0].emailAddress,
+        name: `${user.firstName} ${user.lastName}`,
         photo: user.imageUrl,
         username: user.username??"",
         password: "",

@@ -7,6 +7,6 @@ export default async function CallbackPage(){
   if(auth.status === 200 || auth.status === 201){
     redirect('/home')
   } else {
-    redirect('/')
+    redirect('/sign-in')
   }
 }
