@@ -37,24 +37,30 @@ export default function InputPost({ user }: { user?: User }) {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      let imageUrl: string|undefined;
+      let messageRes, statusRes;
       if (file) {
         const res = await startUpload([file]);
-        imageUrl = res?.[0].ufsUrl
+        const {message, status} = await createPost({
+          content,
+          imageUrl: res?.[0].ufsUrl
+        })
+        messageRes = message;
+        statusRes = status;
+      } else {
+        const {message, status} = await createPost({
+          content,
+        })
+        messageRes = message;
+        statusRes = status;
       }
-
-      const {message, status} = await createPost({
-        content,
-        imageUrl
-      })
-
-      if(status === 201){
+      
+      if(statusRes === 201){
         setContent(" ")
         setFile(undefined)
         setPreviewUrl("")
-        toast.success(message)
+        toast.success(messageRes)
       } else {
-        toast.error(message)
+        toast.error(messageRes)
       }
       setLoading(false);
     } catch (error) {
