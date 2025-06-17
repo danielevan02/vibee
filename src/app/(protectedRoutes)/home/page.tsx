@@ -1,4 +1,3 @@
-import { getAllPost } from "@/actions/post.action";
 import { onAuthenticateUser } from "@/actions/user.action";
 import {
   Tabs,
@@ -7,14 +6,15 @@ import {
   TabsTrigger,
   TabsContents, // Asumsi ini komponen custom Anda
 } from "@/components/animate-ui/components/tabs";
-import PostCard from "@/components/card/post-card";
 import InputPost from "@/components/input-post";
 import PostList from "@/components/post-list";
-import { Loader } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function HomePage() {
   const { user } = await onAuthenticateUser();
-  const posts = await getAllPost();
+  if(!user){
+    return redirect('/')
+  }
   return (
     <div className="flex flex-col justify-center w-[90%] md:w-[60%] lg:w-[40%] m-auto flex-1 h-10/12 pb-5">
       <Tabs className="h-full">
