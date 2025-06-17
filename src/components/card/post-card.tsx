@@ -4,7 +4,7 @@ import { MessageSquareText, Star } from "lucide-react";
 import { format } from "date-fns";
 import Image from "next/image";
 import { useState } from "react";
-import { Post, User } from "@prisma/client";
+import { Comment, Post, User } from "@prisma/client";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import {
 import { IconButton } from "../animate-ui/buttons/icon";
 import { createLike, removeLike } from "@/actions/like.action";
 import { toast } from "sonner";
+import CommentSection from "../section/comment-section";
 
 interface PostCardProps {
   post: Post & {
@@ -24,9 +25,12 @@ interface PostCardProps {
     };
   };
   isLiked: boolean;
+  comments: (Comment & {
+    author: User;
+  })[]
 }
 
-export default function PostCard({ post, isLiked = false }: PostCardProps) {
+export default function PostCard({ post, isLiked = false, comments }: PostCardProps) {
   const time = format(new Date(post.createdAt), "hh:mm aa");
   const date = format(new Date(post.createdAt), "MMM dd, yyyy");
 
@@ -50,18 +54,18 @@ export default function PostCard({ post, isLiked = false }: PostCardProps) {
     try {
       if (!active) {
         const { message } = await createLike({ postId: post.id });
-        if(message){
-          toast.error(message)
+        if (message) {
+          toast.error(message);
         }
       } else {
         const { message } = await removeLike({ postId: post.id });
-        if(message){
-          toast.error(message)
+        if (message) {
+          toast.error(message);
         }
       }
     } catch (error) {
       console.log(error);
-      toast.error("Can't like this post")
+      toast.error("Can't like this post");
     }
   };
   return (
@@ -112,7 +116,7 @@ export default function PostCard({ post, isLiked = false }: PostCardProps) {
                 alt="image"
                 width={500}
                 height={500}
-                className="w-full aspect-video object-cover mt-5 rounded-md border"
+                className="w-[60%] aspect-video object-cover mt-5 rounded-md border"
               />
             </DialogTrigger>
             <DialogContent className="max-w-5xl">
@@ -145,8 +149,16 @@ export default function PostCard({ post, isLiked = false }: PostCardProps) {
             <DialogTrigger className="flex gap-2 text-sm items-center hover:bg-primary/10 transition rounded-full px-2 cursor-pointer text-primary">
               <MessageSquareText className="w-5" /> {post._count.comments}
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-screen overflow-y-scroll">
               <DialogTitle>Comments</DialogTitle>
+              <CommentSection
+                post={post}
+                date={date}
+                time={time}
+                wordLimit={wordLimit}
+                words={words}
+                comments={comments}
+              />
             </DialogContent>
           </Dialog>
         </div>
