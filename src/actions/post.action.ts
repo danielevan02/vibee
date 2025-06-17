@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { onAuthenticateUser } from "./user.action";
-import { revalidatePath } from "next/cache";
 
 export async function createPost({
   content,
