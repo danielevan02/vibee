@@ -11,10 +11,12 @@ import { createPost } from "@/actions/post.action";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { usePost } from "@/lib/stores";
 
 export default function InputPost({ user }: { user?: User }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { startUpload } = useUploadThing("imageUploader");
+  const { setPosts } = usePost()
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File>();
@@ -40,16 +42,22 @@ export default function InputPost({ user }: { user?: User }) {
       let messageRes, statusRes;
       if (file) {
         const res = await startUpload([file]);
-        const {message, status} = await createPost({
+        const {message, status, post} = await createPost({
           content,
           imageUrl: res?.[0].ufsUrl
         })
+        if(post){
+          setPosts((prev) => [post, ...prev])
+        }
         messageRes = message;
         statusRes = status;
       } else {
-        const {message, status} = await createPost({
+        const {message, status, post} = await createPost({
           content,
         })
+        if(post){
+          setPosts((prev) => [post, ...prev])
+        }
         messageRes = message;
         statusRes = status;
       }
@@ -76,7 +84,7 @@ export default function InputPost({ user }: { user?: User }) {
           height={30}
           width={30}
           alt="User Icon"
-          className="rounded-full w-fit h-fit"
+          className="rounded-full w-10 h-9 object-cover"
         />
         <div className="flex flex-col w-full">
           <Textarea

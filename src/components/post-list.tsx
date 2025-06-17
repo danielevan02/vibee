@@ -4,9 +4,10 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import PostCard, { PostCardProps } from "@/components/card/post-card";
 import { Loader } from "lucide-react";
 import { User } from "@prisma/client";
+import { usePost } from "@/lib/stores";
 
 export default function PostList({ user }: { user: User }) {
-  const [posts, setPosts] = useState<PostCardProps['post'][]>([]);
+  const {posts, setPosts} = usePost()
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
