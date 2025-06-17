@@ -43,6 +43,7 @@ export default function CommentSection({
   comments,
 }: CommentSectionProps) {
   const [isExpand, setIsExpand] = useState(false);
+  const [commentList, setCommentList] = useState(comments)
   const [content, setContent] = useState("");
   const [wordCount, setWordCount] = useState(0);
   const [loading, setLoading] = useState(false)
@@ -62,12 +63,16 @@ export default function CommentSection({
     try {
       setLoading(true)
 
-      const {message, status} = await createComment({content, postId: post.id})
-      if(status === 201){
+      const {message, status, comment} = await createComment({content, postId: post.id})
+
+      if(status === 201&&comment){
         toast.success(message)
+        setCommentList(prev => [comment, ...prev])
+        post._count.comments += 1
       } else {
         toast.error(message)
       }
+
 
       setLoading(false)
       setContent("")
@@ -86,7 +91,7 @@ export default function CommentSection({
             height={50}
             width={50}
             alt="icon"
-            className="rounded-full w-10 h-fit"
+            className="rounded-full w-10 h-10 object-cover"
           />
           <div className="flex flex-col justify-center">
             <p className="font-bold">{post.author.name}</p>
@@ -178,14 +183,14 @@ export default function CommentSection({
           <div className="flex flex-col gap-1">
             {
             post._count.comments !== 0 ? (
-              comments.map((comment, idx) => (
+              commentList.map((comment) => (
                 <Fragment key={comment.id}>
                   <CommentCard
                     author={comment.author}
                     content={comment.content}
                     createdAt={comment.createdAt}
                   />
-                  {(idx+1) !== comments.length && <hr />}
+                  <hr />
                 </Fragment>
               ))
 

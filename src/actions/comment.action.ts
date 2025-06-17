@@ -14,11 +14,14 @@ export async function createComment({content, postId}:{content: string; postId: 
       }
     }
 
-    await prisma.comment.create({
+    const comment = await prisma.comment.create({
       data: {
         authorId: user.id,
         content,
         postId
+      },
+      include: {
+        author: true
       }
     })
 
@@ -26,7 +29,8 @@ export async function createComment({content, postId}:{content: string; postId: 
 
     return {
       status: 201,
-      message: "Comment Posted!"
+      message: "Comment Posted!",
+      comment
     }
   } catch (error) {
     console.log(error)

@@ -21,7 +21,7 @@ export async function createPost({
       }
     }
 
-    await prisma.post.create({
+    const post = await prisma.post.create({
       data: {
         content,
         imageUrl,
@@ -31,13 +31,31 @@ export async function createPost({
           }
         },
       },
+      include: {
+        author: true,
+        _count: {
+          select: {
+            comments: true,
+            likes: true
+          }
+        },
+        comments: {
+          include: {
+            author: true
+          }
+        },
+        likes: {
+          select: {
+            authorId: true
+          }
+        }
+      }
     });
-
-    revalidatePath('/home')
 
     return {
       status: 201,
-      message: "Post Created!"
+      message: "Post Created!",
+      post
     }
   } catch (error) {
     console.log(error)
@@ -68,6 +86,9 @@ export async function getAllPost(skip = 0, take = 10) {
       comments: {
         include: {
           author: true
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
       }
     },
