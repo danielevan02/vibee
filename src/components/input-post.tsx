@@ -78,7 +78,7 @@ export default function InputPost({ user }: { user?: User }) {
           alt="User Icon"
           className="rounded-full w-fit h-fit"
         />
-        <div className="flex flex-col">
+        <div className="flex flex-col w-full">
           <Textarea
             className="placeholder:text-neutral-400 focus-visible:ring-0 border-none resize-none min-h-20"
             placeholder="What's happening?"
