@@ -72,7 +72,7 @@ export default function InputPost({ user }: { user?: User }) {
     <div className="rounded-md border p-5 flex flex-col sticky top-0 left-0">
       <div className="flex gap-2">
         <Image
-          src={user?.photo || ""}
+          src={user?.photo || "/user-placeholder.png"}
           height={30}
           width={30}
           alt="User Icon"
@@ -101,7 +101,7 @@ export default function InputPost({ user }: { user?: User }) {
                   alt="Photo"
                   width={500}
                   height={500}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded-md"
                 />
                 <button
                   className={cn("p-1 bg-red-600 rounded-full text-white absolute -top-2 -right-2 cursor-pointer transition hover:bg-red-400", loading && 'hidden')}

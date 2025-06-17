@@ -15,15 +15,15 @@ import { IconButton } from "../animate-ui/buttons/icon";
 import { createLike, removeLike } from "@/actions/like.action";
 import { toast } from "sonner";
 import CommentSection from "../section/comment-section";
+import { PostWithRelations } from "@/actions/post.action";
 
 interface PostCardProps {
-  post: Post & {
-    author: User;
+  post: PostWithRelations & {
     _count: {
-      comments: number;
       likes: number;
-    };
-  };
+      comments: number;
+    }
+  }
   isLiked: boolean;
   comments: (Comment & {
     author: User;
@@ -77,7 +77,7 @@ export default function PostCard({ post, isLiked = false, comments }: PostCardPr
             height={50}
             width={50}
             alt="icon"
-            className="rounded-full w-10 h-10 object-cover"
+            className="rounded-full w-10 h-fit"
           />
           <div className="flex flex-col justify-center">
             <p className="font-bold">{post.author.name}</p>
