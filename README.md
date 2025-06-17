@@ -27,6 +27,7 @@ VIBEE dibangun dengan tumpuan teknologi modern untuk memastikan kinerja dan skal
 * **Clerk:** Solusi autentikasi dan manajemen pengguna yang *production-ready*.
 * **Uploadthing:** Untuk penanganan upload file yang mudah dan efisien.
 * **Framer Motion:** Untuk animasi UI yang interaktif dan *smooth*.
+* **Zustand:** Untuk mengelola global state.
 
 ## **Peran IBM Granite dalam Pengembangan Proyek Ini**
 
@@ -64,10 +65,10 @@ Ikuti langkah-langkah di bawah untuk menjalankan proyek VIBEE di lingkungan loka
         DATABASE_URL="<URL_DATABASE_PRISMA_ANDA>"
         NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="<CLERK_PUBLISHABLE_KEY>"
         CLERK_SECRET_KEY="<CLERK_SECRET_KEY>"
-        NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in" # Jika Anda punya halaman login kustom
-        NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up" # Jika Anda punya halaman register kustom
-        UPLOADTHING_SECRET="<UPLOADTHING_SECRET_KEY>"
-        UPLOADTHING_APP_ID="<UPLOADTHING_APP_ID>"
+        NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/callback
+        NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/callback
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+        UPLOADTHING_TOKEN="<UPLOADTHING_TOKEN_KEY>"
         ```
 
 4.  **Inisialisasi Prisma & Database:**
