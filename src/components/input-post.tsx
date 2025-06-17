@@ -55,7 +55,7 @@ export default function InputPost({ user }: { user?: User }) {
       }
       
       if(statusRes === 201){
-        setContent(" ")
+        setContent("")
         setFile(undefined)
         setPreviewUrl("")
         toast.success(messageRes)
