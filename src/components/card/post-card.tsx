@@ -16,13 +16,19 @@ import { createLike, removeLike } from "@/actions/like.action";
 import { toast } from "sonner";
 import CommentSection from "../section/comment-section";
 
-interface PostCardProps {
+export interface PostCardProps {
   post: Post & {
     author: User;
     _count: {
       comments: number;
       likes: number;
     };
+    comments: (Comment & {
+      author: User
+    })[]
+    likes: {
+      authorId: string
+    }[]
   };
   isLiked: boolean;
   comments: (Comment & {

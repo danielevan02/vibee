@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import PostCard from "@/components/card/post-card";
+import PostCard, { PostCardProps } from "@/components/card/post-card";
 import { Loader } from "lucide-react";
+import { User } from "@prisma/client";
 
-export default function PostList({ user }: { user: any }) {
-  const [posts, setPosts] = useState<any[]>([]);
+export default function PostList({ user }: { user: User }) {
+  const [posts, setPosts] = useState<PostCardProps['post'][]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const observer = useRef<IntersectionObserver | null>(null);
@@ -34,11 +35,11 @@ export default function PostList({ user }: { user: any }) {
   
     try {
       const res = await fetch(`/api/post?skip=${posts.length}`);
-      const newPosts = await res.json();
+      const newPosts = await res.json() as PostCardProps['post'][];
   
       setPosts((prev) => {
         const existingIds = new Set(prev.map((p) => p.id));
-        const uniquePosts = newPosts.filter((p: any) => !existingIds.has(p.id));
+        const uniquePosts = newPosts.filter((p) => !existingIds.has(p.id));
         return [...prev, ...uniquePosts];
       });
   
@@ -77,7 +78,7 @@ export default function PostList({ user }: { user: any }) {
       {posts.map((post) => {
         const comments = post.comments;
         const isLiked = post.likes.some(
-          (like: any) => like.authorId === user?.id
+          (like) => like.authorId === user?.id
         );
         return (
           <PostCard
