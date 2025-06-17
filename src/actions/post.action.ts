@@ -48,9 +48,10 @@ export async function createPost({
   }
 }
 
-export async function getAllPost(){
+export async function getAllPost(skip = 0, take = 10) {
   return await prisma.post.findMany({
-    take:10,
+    skip,
+    take,
     include: {
       author: true,
       _count: {
@@ -73,5 +74,5 @@ export async function getAllPost(){
     orderBy: {
       createdAt: 'desc'
     }
-  })
+  });
 }

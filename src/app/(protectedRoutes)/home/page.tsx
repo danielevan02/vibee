@@ -9,6 +9,7 @@ import {
 } from "@/components/animate-ui/components/tabs";
 import PostCard from "@/components/card/post-card";
 import InputPost from "@/components/input-post";
+import PostList from "@/components/post-list";
 import { Loader } from "lucide-react";
 
 export default async function HomePage() {
@@ -27,21 +28,7 @@ export default async function HomePage() {
             value="tab1"
             className="flex flex-col gap-2 max-h-full overflow-y-scroll"
           >
-            {posts ? (
-              posts.length !== 0 ? (
-                posts.map((post) => {
-                  const commments = post.comments
-                  const isLiked = post.likes.some(like => like.authorId === user?.id)
-                  return <PostCard key={post.id} post={post} isLiked={isLiked} comments={commments} />;
-                })
-              ) : (
-                <p className="mt-20 text-neutral-500">
-                  There is no post from other user
-                </p>
-              )
-            ) : (
-              <Loader className="w-5 h-5 animate-spin mt-20" />
-            )}
+            <PostList user={user}/>
           </TabsContent>
 
           <TabsContent value="tab2" className="sticky top-0 left-0">
