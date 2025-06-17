@@ -64,7 +64,11 @@ export async function getAllPost(){
           authorId: true
         }
       },
-      
+      comments: {
+        include: {
+          author: true
+        }
+      }
     },
     orderBy: {
       createdAt: 'desc'
