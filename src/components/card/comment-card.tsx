@@ -19,7 +19,7 @@ export default function CommentCard({author, content, createdAt}: CommentCardPro
         alt="icon"
         height={30}
         width={30}
-        className="rounded-full w-10 h-10"
+        className="rounded-full w-10 h-10 object-cover"
       />
       <div className="flex flex-col w-full">
         <div className="flex items-center justify-between max-w-full flex-wrap">
