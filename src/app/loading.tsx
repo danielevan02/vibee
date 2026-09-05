@@ -33,7 +33,9 @@ export default function LoadingPage() {
           />
         )}
       </div>
-      <p className="tracking-widest">VIBEE</p>
+      <p className="font-serif font-normal text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent">
+        VIBEE
+      </p>
 
       <div className="absolute bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 text-center">
         <p className="text-neutral-500">Made by</p>

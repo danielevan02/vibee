@@ -24,7 +24,7 @@ VIBEE dibangun dengan tumpuan teknologi modern untuk memastikan kinerja dan skal
 * **Prisma ORM:** *Next-generation ORM* untuk interaksi database yang mudah dan aman.
 * **PostgreSQL (via Neon):** Database relasional yang skalabel, dihosting secara *serverless* oleh Neon.
 * **Tailwind CSS:** Framework CSS *utility-first* untuk styling yang cepat dan konsisten.
-* **Clerk:** Solusi autentikasi dan manajemen pengguna yang *production-ready*.
+* **Better Auth:** Solusi autentikasi modern, self-hosted, dan type-safe dengan dukungan session database.
 * **Uploadthing:** Untuk penanganan upload file yang mudah dan efisien.
 * **Framer Motion:** Untuk animasi UI yang interaktif dan *smooth*.
 * **Zustand:** Untuk mengelola global state.
@@ -46,7 +46,7 @@ Ikuti langkah-langkah di bawah untuk menjalankan proyek VIBEE di lingkungan loka
 
 1.  **Clone repositori ini:**
     ```bash
-    git clone [https://github.com/your-username/vibee.git](https://github.com/your-username/vibee.git)
+    git clone https://github.com/your-username/vibee.git
     cd vibee
     ```
 
@@ -59,15 +59,12 @@ Ikuti langkah-langkah di bawah untuk menjalankan proyek VIBEE di lingkungan loka
 3.  **Siapkan variabel lingkungan:**
     * Buat file `.env.local` di root proyek.
     * Dapatkan kredensial database PostgreSQL dari Neon (atau penyedia database lain).
-    * Dapatkan kunci API dari Clerk dan Uploadthing.
+    * Buat `BETTER_AUTH_SECRET` menggunakan `openssl rand -base64 32`.
     * Isi file `.env.local` dengan variabel-variabel berikut:
         ```env
         DATABASE_URL="<URL_DATABASE_PRISMA_ANDA>"
-        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="<CLERK_PUBLISHABLE_KEY>"
-        CLERK_SECRET_KEY="<CLERK_SECRET_KEY>"
-        NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/callback
-        NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/callback
-        NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+        BETTER_AUTH_SECRET="<RAHASIA_BETTER_AUTH_32_CHAR>"
+        BETTER_AUTH_URL="http://localhost:3000"
         UPLOADTHING_TOKEN="<UPLOADTHING_TOKEN_KEY>"
         ```
 

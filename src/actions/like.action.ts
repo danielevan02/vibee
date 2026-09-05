@@ -18,13 +18,31 @@ export async function createLike({postId}: {postId: string;}){
         authorId: user.id,
         postId
       }
-    })
+    });
+
+    // Notify post author if not liking own post
+    const targetPost = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true, content: true },
+    });
+
+    if (targetPost && targetPost.authorId !== user.id) {
+      await prisma.notification.create({
+        data: {
+          type: "LIKE",
+          content: targetPost.content?.slice(0, 100) || "your vibe",
+          recipientId: targetPost.authorId,
+          senderId: user.id,
+          postId,
+        },
+      });
+    }
 
     return {
       status: 201,
     }
   } catch (error) {
-    console.log(error)
+    console.error("createLike error:", error);
     return {
       status: 500,
       message: 'Internal Server Error'
@@ -49,13 +67,23 @@ export async function removeLike({postId}: {postId: string;}){
           postId
         }
       }
-    })
+    });
+
+    // Delete like notification if still unread
+    await prisma.notification.deleteMany({
+      where: {
+        type: "LIKE",
+        senderId: user.id,
+        postId,
+        read: false,
+      },
+    });
 
     return {
-      status: 201,
+      status: 200,
     }
   } catch (error) {
-    console.log(error)
+    console.error("removeLike error:", error);
     return {
       status: 500,
       message: 'Internal Server Error'

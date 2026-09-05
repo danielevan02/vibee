@@ -1,10 +1,64 @@
-import Navbar from "@/components/navbar";
+import { onAuthenticateUser } from "@/actions/user.action";
+import AppSidebar from "@/components/dashboard/app-sidebar";
+import AppRightRail from "@/components/dashboard/app-right-rail";
+import Link from "next/link";
+import Image from "next/image";
+import ThemeButton from "@/components/navbar/theme-button";
+import UserMenu from "@/components/auth/user-menu";
+import { redirect } from "next/navigation";
 
-export default async function ProtectedLayout({children}: {children: React.ReactNode}){
+export default async function ProtectedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const auth = await onAuthenticateUser();
+  const user = auth.user;
+
+  if (!user) {
+    redirect("/sign-in");
+  }
+
   return (
-    <main className="relative flex flex-col h-screen w-screen">
-      <Navbar/>
-      {children}
-    </main>
-  )
+    // `overflow-clip` rather than `overflow-hidden`: hidden still creates a
+    // scroll container, so the browser can silently scroll this shell to reveal
+    // a newly focused element (reply box, emoji search, mention textarea). With
+    // no scrollbar and no way to scroll back, the rails stayed offset until a
+    // reload. `clip` creates no scroll container at all.
+    <div className="relative h-screen max-h-screen overflow-clip bg-background text-foreground flex flex-col md:flex-row justify-center selection:bg-primary/20 selection:text-primary">
+
+      {/* Mobile Top Header (Screens < md) */}
+      <header className="md:hidden sticky top-0 z-30 h-16 border-b border-border/60 bg-background/85 dark:bg-card/85 backdrop-blur-xl px-4 flex items-center justify-between shrink-0">
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image
+            src="/black-logo.png"
+            alt="VIBEE"
+            width={28}
+            height={28}
+            className="w-7 h-7 object-contain dark:invert"
+          />
+          <span className="font-serif font-normal text-xl sm:text-2xl tracking-tight text-foreground">
+            VIBEE
+          </span>
+        </Link>
+        <div className="flex items-center gap-1.5">
+          <ThemeButton />
+          <UserMenu user={user} compact side="bottom" />
+        </div>
+      </header>
+
+      {/* Section 1 (Kiri): Persistent Left Sidebar (Fixed / Non-scrolling) */}
+      <AppSidebar user={user} />
+
+      {/* Section 2 (Tengah): Central Content Canvas (THE ONLY SCROLLABLE COLUMN) */}
+      <main className="flex-1 w-full max-w-2xl h-screen max-h-screen overflow-y-auto subtle-scrollbar flex flex-col border-r border-border/60 bg-background/40">
+        {children}
+      </main>
+
+      {/* Section 3 (Kanan): Right Rail */}
+      <AppRightRail />
+
+      {/* Progressive bottom blur removed as requested */}
+    </div>
+  );
 }

@@ -1,87 +1,52 @@
-import ParallaxSection from "@/components/section/parallax-section";
-import WorldSection from "@/components/section/world-section";
-import { Button } from "@/components/ui/button";
-import ColourfulText from "@/components/ui/colourful-text";
-import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
-import Link from "next/link";
+import LandingNavbar from "@/components/landing/landing-navbar";
+import HeroSection from "@/components/landing/hero-section";
+import TrendingTicker from "@/components/landing/trending-ticker";
+import FeaturesBento from "@/components/landing/features-bento";
+import AppPreview from "@/components/landing/app-preview";
+import ContrastQuietSection from "@/components/landing/contrast-quiet-section";
+import TestimonialsSection from "@/components/landing/testimonials-section";
+import CTASection from "@/components/landing/cta-section";
+import LandingFooter from "@/components/landing/landing-footer";
+import ProgressiveBottomBlur from "@/components/landing/progressive-blur";
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col mx-5 md:mx-10">
-      <div className="relative flex items-center justify-center h-screen">
-        <div className="w-[90%] xl:w-[70%] m-auto flex flex-col lg:flex-row items-center gap-5">
-          <div className="flex flex-col justify-between h-full gap-5 items-center">
-            <p className="italic">
-              &quot;Share the Vibe. Live the Moment.&quot;
-            </p>
-            <h1 className="text-3xl md:text-5xl capitalize font-extrabold text-center">
-              <ColourfulText text="VIBEE" /> The best social media app for gen-z
-            </h1>
-            <p className="text-sm">
-              Vibee is where your real moments turn into real vibes. Share,
-              connect, and vibe with your people—anytime, anywhere.
-            </p>
-            <Link
-              href="/home"
-              className="rounded-full px-8 py-4 border border-primary text-primary uppercase tracking-widest hover:bg-primary hover:text-white transition"
-            >
-              join vibee now
-            </Link>
-          </div>
+    <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/20 selection:text-primary overflow-x-hidden">
 
-          <div className="rounded-md overflow-clip shadow-lg border w-full h-full">
-            <video autoPlay loop muted playsInline className="w-full h-full">
-              <source src="/video.mp4" type="video/mp4" />
-            </video>
-          </div>
-        </div>
+      {/* Top Navbar */}
+      <LandingNavbar />
 
-        <Link
-          href="#world"
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 rounded-full hover:bg-neutral-400 transition p-2 animate-bounce"
-        >
-          <ChevronDown />
-        </Link>
+      {/* Main Containerized Editorial Layout with Framed Side Borders */}
+      <div className="max-w-[1240px] mx-auto border-x border-border/60 bg-background/50">
+        <main className="relative z-10 flex flex-col">
+          {/* 1. Split Editorial Hero with Classical Oil Painting Backdrop */}
+          <HeroSection />
+
+          {/* 2. Dark Editorial Frequency Ribbon */}
+          <TrendingTicker />
+
+          {/* 3. Three Steps Between You and Genuine Connection (3 Painting Cards) */}
+          <FeaturesBento />
+
+          {/* 4. Panoramic Canvas Showcase (Interactive Feed on European Countryside) */}
+          <AppPreview />
+
+          {/* 5. Signature Obsidian Dark Block: "Built for humans, not dopamine algorithms" */}
+          <ContrastQuietSection />
+
+          {/* 6. Literary Pull-Quote Testimonial with Painted Portrait */}
+          <TestimonialsSection />
+
+          {/* 7. Panoramic Banner CTA with Handle Claim */}
+          <CTASection />
+        </main>
+
+        {/* 8. Minimalist Editorial Footer with Painted Strip */}
+        <LandingFooter />
       </div>
 
-      <section id="world" className="pt-10">
-        <WorldSection />
-      </section>
-
-      <section>
-        <ParallaxSection />
-      </section>
-
-      <section className="relative flex h-96 w-full items-center justify-center bg-white dark:bg-black">
-        <div
-          className={cn(
-            "absolute inset-0",
-            "[background-size:40px_40px]",
-            "[background-image:linear-gradient(to_right,#e4e4e7_1px,transparent_1px),linear-gradient(to_bottom,#e4e4e7_1px,transparent_1px)]",
-            "dark:[background-image:linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)]"
-          )}
-        />
-        {/* Radial gradient for the container to give a faded look */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)] dark:bg-black"></div>
-        <div className="relative z-20 flex flex-col items-center">
-          <p className="bg-gradient-to-b from-neutral-200 to-primary bg-clip-text py-8 text-4xl font-bold text-transparent sm:text-7xl text-center">
-            What are you waiting for? <br />
-            <span className="text-lg md:text-3xl text-foreground/60">
-              join now and start connecting with your people!
-            </span>
-          </p>
-          <Button className="p-5 uppercase tracking-widest bg-transparent border border-primary backdrop-blur-sm text-primary hover:text-white">
-            Join Our Community
-          </Button>
-        </div>
-      </section>
-
-      <footer className="flex justify-center items-center border-t">
-        <p className="text-neutral-600">
-          © {new Date().getFullYear()} VIBEE, made by Daniel Evan
-        </p>
-      </footer>
+      {/* Fixed Progressive Bottom Edge Fog Blur */}
+      <ProgressiveBottomBlur />
     </div>
   );
 }

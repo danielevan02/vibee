@@ -1,24 +1,31 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
-const isPublicRoute =  createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api(.*)',
-  '/'
-]);
+const protectedPaths = ["/home", "/explore", "/bookmarks", "/notifications", "/profile"];
 
-export default clerkMiddleware(async (auth, req) => {
-  console.log(req);
-  if(!isPublicRoute(req)){
-    await auth.protect();
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Always allow Better Auth API routes
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
   }
-});
+
+  const sessionCookie = getSessionCookie(request);
+
+  const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
+
+  if (isProtected && !sessionCookie) {
+    const signInUrl = new URL("/sign-in", request.url);
+    return NextResponse.redirect(signInUrl);
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
-    // Tambahkan 'mp4' ke dalam daftar ekstensi yang akan dilewati
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|mp4)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|mp4)).*)",
+    "/(api|trpc)(.*)",
   ],
 };

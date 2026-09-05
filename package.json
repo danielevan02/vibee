@@ -10,14 +10,14 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.21.0",
+    "@better-auth/prisma-adapter": "^1.7.2",
     "@prisma/client": "6.5.0",
     "@radix-ui/react-slot": "^1.2.3",
     "@uploadthing/react": "^7.3.1",
+    "better-auth": "^1.7.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "dotted-map": "^2.2.3",
     "lucide-react": "^0.514.0",
     "motion": "^12.17.3",
     "next": "15.2.4",

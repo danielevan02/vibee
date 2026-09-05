@@ -9,31 +9,105 @@ datasource db {
 
 // Model untuk Pengguna (User)
 model User {
-  id        String    @id @default(uuid())
-  name      String    @default("NO_NAME")
-  clerkId   String    @unique
-  username  String    @unique
-  email     String    @unique
-  photo     String
-  password  String 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  posts     Post[]
-  comments  Comment[]
-  likes     Like[]
+  id                    String         @id @default(uuid())
+  name                  String         @default("NO_NAME")
+  username              String         @unique
+  email                 String         @unique
+  emailVerified         Boolean        @default(false)
+  image                 String?
+  photo                 String?
+  password              String?
+  bio                   String?
+  website               String?
+  location              String?
+  coverImage            String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  sessions              Session[]
+  accounts              Account[]
+  posts                 Post[]
+  comments              Comment[]
+  likes                 Like[]
+  bookmarks             Bookmark[]
+  reports               Report[]       @relation("UserReports")
+  followers             Follow[]       @relation("FollowingRelation")
+  following             Follow[]       @relation("FollowerRelation")
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
+  sentNotifications     Notification[] @relation("SentNotifications")
+}
+
+// Model untuk Session (Better Auth)
+model Session {
+  id        String   @id @default(uuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Model untuk Account (Better Auth)
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  issuer                String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+}
+
+// Model untuk Verification (Better Auth)
+model Verification {
+  id         String    @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+}
+
+// Model untuk Relasi Follow
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("FollowerRelation", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("FollowingRelation", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
 }
 
 // Model untuk Postingan (Post)
 model Post {
-  id        String    @id @default(uuid())
-  content   String? // Konten tulisan
-  imageUrl  String? // URL gambar (jika ada)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  author    User      @relation(fields: [authorId], references: [id])
-  authorId  String
-  comments  Comment[]
-  likes     Like[]
+  id            String         @id @default(uuid())
+  content       String? // Konten tulisan
+  imageUrl      String? // URL gambar tunggal (backward compatibility)
+  imageUrls     String[]       @default([]) // URL banyak gambar untuk slider/carousel
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  author        User           @relation(fields: [authorId], references: [id])
+  authorId      String
+  comments      Comment[]
+  likes         Like[]
+  bookmarks     Bookmark[]
+  reports       Report[]
+  notifications Notification[]
 }
 
 // Model untuk Komentar (Comment)
@@ -44,8 +118,18 @@ model Comment {
   updatedAt DateTime @updatedAt
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
+
+  // Single-level threading: a reply always points at a top-level comment.
+  // Replying to a reply is flattened onto its parent in createComment, so
+  // parentId is never more than one hop deep.
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  String?
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([postId, parentId])
+  @@index([parentId])
 }
 
 // Model untuk Like
@@ -54,8 +138,55 @@ model Like {
   createdAt DateTime @default(now())
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
 
   @@unique([authorId, postId]) // Sebuah user hanya bisa memberikan 1 like per post
+}
+
+// Model untuk Bookmark
+model Bookmark {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+
+  @@unique([userId, postId])
+}
+
+// Model untuk Notifikasi
+model Notification {
+  id          String   @id @default(uuid())
+  type        String   // "MENTION", "LIKE", "COMMENT"
+  content     String?  // Cuplikan teks
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  recipient   User     @relation("ReceivedNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String
+
+  sender      User     @relation("SentNotifications", fields: [senderId], references: [id], onDelete: Cascade)
+  senderId    String
+
+  post        Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId      String?
+}
+
+// Model untuk Laporan Konten (Report)
+model Report {
+  id         String   @id @default(uuid())
+  reason     String   // SPAM, HARASSMENT, INAPPROPRIATE, MISINFORMATION, OTHER
+  details    String?  // Catatan penjelasan opsional
+  status     String   @default("PENDING") // PENDING, REVIEWED, RESOLVED, DISMISSED
+  createdAt  DateTime @default(now())
+
+  reporter   User     @relation("UserReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId String
+
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId     String
+
+  @@unique([reporterId, postId])
 }
