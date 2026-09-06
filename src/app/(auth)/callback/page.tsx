@@ -1,4 +1,4 @@
-import { onAuthenticateUser } from "@/actions/user.action";
+import { onAuthenticateUser } from "@/server/data/user";
 import { redirect } from "next/navigation";
 
 export default async function CallbackPage(){

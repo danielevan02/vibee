@@ -1,5 +1,5 @@
-import { onAuthenticateUser } from "@/actions/user.action";
-import HomeFeedStream from "@/components/dashboard/home-feed-stream";
+import { onAuthenticateUser } from "@/server/data/user";
+import HomeFeedStream from "@/components/features/feed/home-feed-stream";
 import { redirect } from "next/navigation";
 
 export default async function HomePage({

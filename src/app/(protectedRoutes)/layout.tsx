@@ -1,10 +1,10 @@
-import { onAuthenticateUser } from "@/actions/user.action";
-import AppSidebar from "@/components/dashboard/app-sidebar";
-import AppRightRail from "@/components/dashboard/app-right-rail";
+import { onAuthenticateUser } from "@/server/data/user";
+import AppSidebar from "@/components/features/shell/app-sidebar";
+import AppRightRail from "@/components/features/shell/app-right-rail";
 import Link from "next/link";
 import Image from "next/image";
-import ThemeButton from "@/components/navbar/theme-button";
-import UserMenu from "@/components/auth/user-menu";
+import ThemeButton from "@/components/features/shell/theme-button";
+import UserMenu from "@/components/features/auth/user-menu";
 import { redirect } from "next/navigation";
 
 export default async function ProtectedLayout({

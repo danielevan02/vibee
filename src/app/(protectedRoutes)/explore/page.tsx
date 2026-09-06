@@ -19,14 +19,10 @@ import {
   Maximize2,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
-import {
-  getExploreData,
-  ExplorePost,
-  ExploreUser,
-  getTrendingTopics,
-} from "@/actions/explore.action";
-import { toggleFollowUser } from "@/actions/user.action";
-import PostCard from "@/components/card/post-card";
+import { getExploreData, getTrendingTopics } from "@/server/data/explore";
+import type { ExplorePost, ExploreUser } from "@/server/data/explore";
+import { toggleFollowUser } from "@/server/actions/user";
+import PostCard from "@/components/features/post/post-card";
 import ImageLightbox from "@/components/ui/image-lightbox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";

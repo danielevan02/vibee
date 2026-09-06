@@ -1,4 +1,4 @@
-import { PostCardProps } from "@/components/card/post-card";
+import { PostCardProps } from "@/components/features/post/post-card";
 import { create } from "zustand";
 
 type PostStore = {

@@ -1,13 +1,13 @@
-import LandingNavbar from "@/components/landing/landing-navbar";
-import HeroSection from "@/components/landing/hero-section";
-import TrendingTicker from "@/components/landing/trending-ticker";
-import FeaturesBento from "@/components/landing/features-bento";
-import AppPreview from "@/components/landing/app-preview";
-import ContrastQuietSection from "@/components/landing/contrast-quiet-section";
-import TestimonialsSection from "@/components/landing/testimonials-section";
-import CTASection from "@/components/landing/cta-section";
-import LandingFooter from "@/components/landing/landing-footer";
-import ProgressiveBottomBlur from "@/components/landing/progressive-blur";
+import LandingNavbar from "@/components/features/landing/landing-navbar";
+import HeroSection from "@/components/features/landing/hero-section";
+import TrendingTicker from "@/components/features/landing/trending-ticker";
+import FeaturesBento from "@/components/features/landing/features-bento";
+import AppPreview from "@/components/features/landing/app-preview";
+import ContrastQuietSection from "@/components/features/landing/contrast-quiet-section";
+import TestimonialsSection from "@/components/features/landing/testimonials-section";
+import CTASection from "@/components/features/landing/cta-section";
+import LandingFooter from "@/components/features/landing/landing-footer";
+import ProgressiveBottomBlur from "@/components/features/landing/progressive-blur";
 
 export default function LandingPage() {
   return (

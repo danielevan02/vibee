@@ -23,14 +23,11 @@ import {
   Bookmark,
 } from "lucide-react";
 import { format } from "date-fns";
-import {
-  getUserProfile,
-  getUserPosts,
-  toggleFollowUser,
-} from "@/actions/user.action";
-import PostCard from "@/components/card/post-card";
+import { getUserProfile, getUserPosts } from "@/server/data/user";
+import { toggleFollowUser } from "@/server/actions/user";
+import PostCard from "@/components/features/post/post-card";
 import ImageLightbox from "@/components/ui/image-lightbox";
-import EditProfileModal from "@/components/profile/edit-profile-modal";
+import EditProfileModal from "@/components/features/profile/edit-profile-modal";
 import MentionText from "@/components/ui/mention-text";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";

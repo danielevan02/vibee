@@ -17,12 +17,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatDistanceToNowStrict, format } from "date-fns";
-import {
-  getNotifications,
-  markNotificationsAsRead,
-  deleteNotification,
-  markSingleNotificationAsRead,
-} from "@/actions/notification.action";
+import { getNotifications } from "@/server/data/notification";
+import { markNotificationsAsRead, deleteNotification, markSingleNotificationAsRead } from "@/server/actions/notification";
 import MentionText from "@/components/ui/mention-text";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";

@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Bookmark, ArrowLeft } from "lucide-react";
-import { getUserBookmarks } from "@/actions/bookmark.action";
-import PostCard, { PostCardProps } from "@/components/card/post-card";
-import PostSkeleton from "@/components/card/post-skeleton";
+import { getUserBookmarks } from "@/server/data/bookmark";
+import PostCard, { PostCardProps } from "@/components/features/post/post-card";
+import PostSkeleton from "@/components/features/post/post-skeleton";
 import { Button } from "@/components/ui/button";
 
 export default function BookmarksPage() {
