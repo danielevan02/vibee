@@ -63,7 +63,7 @@ export default function ExploreView({
   const [activeTag, setActiveTag] = useState(tag);
   const [activeTab, setActiveTab] = useState<TabType>(tab);
 
-  const [posts, setPosts] = useState(initialPosts);
+  const posts = initialPosts;
   const [users, setUsers] = useState(initialUsers);
 
   // State for lightbox in Media tab

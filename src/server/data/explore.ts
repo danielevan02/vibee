@@ -10,7 +10,6 @@ import "server-only";
 import type { ExplorePost, ExploreUser } from "@/types/explore";
 
 import { prisma } from "@/db";
-import { onAuthenticateUser } from "@/server/data/user";
 
 
 

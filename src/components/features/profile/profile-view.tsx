@@ -151,8 +151,8 @@ export default function ProfileView({
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const isOwnProfile = initialIsOwnProfile;
 
-  const [posts, setPosts] = useState(initialPosts);
-  const [replies, setReplies] = useState(initialReplies);
+  const posts = initialPosts;
+  const replies = initialReplies;
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);

@@ -8,7 +8,6 @@
 import "server-only";
 
 import { prisma } from "@/db";
-import { onAuthenticateUser } from "@/server/data/user";
 
 export async function getNotifications(userId: string, filterType?: string) {
     const whereClause: {

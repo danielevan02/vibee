@@ -5,7 +5,6 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useState, useEffect } from "react";
 import UserMenu from "@/components/features/auth/user-menu";
 import {
   Home,
