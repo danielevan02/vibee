@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useHydrated } from "@/hooks/use-hydrated";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -31,11 +32,10 @@ interface AppSidebarProps {
 export default function AppSidebar({ user, onOpenCompose }: AppSidebarProps) {
   const pathname = usePathname();
   const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [unreadCount, setUnreadCount] = useState<number>(0);
 
   useEffect(() => {
-    setMounted(true);
     let isCancelled = false;
     getUnreadNotificationCount()
       .then((count) => {

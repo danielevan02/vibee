@@ -40,6 +40,8 @@ interface CommentSectionProps {
   time: string;
   date: string;
   comments: ThreadComment[];
+  /** Reports a change in total reply count to the owner of the displayed badge. */
+  onCommentCountChange?: (delta: number) => void;
 }
 
 type CommentWithAuthor = Comment & { author: User };
@@ -54,6 +56,7 @@ export default function CommentSection({
   words,
   wordLimit,
   comments,
+  onCommentCountChange,
 }: CommentSectionProps) {
   const { data: session } = authClient.useSession();
   const [isExpand, setIsExpand] = useState(false);
@@ -124,7 +127,7 @@ export default function CommentSection({
               )
             : [comment, ...prev]
         );
-        post._count.comments += 1;
+        onCommentCountChange?.(1);
         setReplyTo(null);
         toast.success(message || "Reply posted!");
       } else {
@@ -151,7 +154,7 @@ export default function CommentSection({
       if (status === 201 && comment) {
         toast.success(message || "Reply posted to thread!");
         setCommentList((prev) => [comment, ...prev]);
-        post._count.comments += 1;
+        onCommentCountChange?.(1);
         setContent("");
         setWordCount(0);
       } else {

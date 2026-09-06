@@ -11,6 +11,11 @@ import { useReducedMotion } from "motion/react";
 
 type PillRect = { x: number; y: number; width: number; height: number };
 
+// `instant` is derived at the moment the pill moves, not read from a ref during
+// render: reading a ref while rendering is not reactive and breaks under
+// concurrent rendering, which React's rules (and the compiler) now reject.
+type PillState = { rect: PillRect; instant: boolean };
+
 // useLayoutEffect warns during SSR; the pill is only ever measured in the browser.
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -33,8 +38,7 @@ const useIsomorphicLayoutEffect =
 export function useSlidingPill(activeKey: string) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const [rect, setRect] = useState<PillRect | null>(null);
-  const placed = useRef(false);
+  const [pill, setPill] = useState<PillState | null>(null);
   const reducedMotion = useReducedMotion();
 
   // Stable identity, so React does not detach/reattach every item each render.
@@ -46,8 +50,8 @@ export function useSlidingPill(activeKey: string) {
   const measure = useCallback(() => {
     const el = itemRefs.current.get(activeKey);
     if (!el) return;
-    setRect((prev) => {
-      const next = {
+    setPill((prev) => {
+      const next: PillRect = {
         x: el.offsetLeft,
         y: el.offsetTop,
         width: el.offsetWidth,
@@ -55,24 +59,21 @@ export function useSlidingPill(activeKey: string) {
       };
       if (
         prev &&
-        prev.x === next.x &&
-        prev.y === next.y &&
-        prev.width === next.width &&
-        prev.height === next.height
+        prev.rect.x === next.x &&
+        prev.rect.y === next.y &&
+        prev.rect.width === next.width &&
+        prev.rect.height === next.height
       ) {
         return prev;
       }
-      return next;
+      // The very first placement must not travel in from x:0/width:0.
+      return { rect: next, instant: prev === null };
     });
   }, [activeKey]);
 
   useIsomorphicLayoutEffect(() => {
     measure();
   }, [measure]);
-
-  useEffect(() => {
-    if (rect) placed.current = true;
-  }, [rect]);
 
   // Re-measure when the track resizes (breakpoint change, font swap, zoom).
   useEffect(() => {
@@ -86,9 +87,9 @@ export function useSlidingPill(activeKey: string) {
   return {
     containerRef,
     setItemRef,
-    rect,
+    rect: pill?.rect ?? null,
     // Skip the travel on the first placement, and for anyone who asked the OS
     // to reduce motion.
-    instant: !placed.current || Boolean(reducedMotion),
+    instant: (pill?.instant ?? true) || Boolean(reducedMotion),
   };
 }

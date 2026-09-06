@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useHydrated } from "@/hooks/use-hydrated";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import { useState, useEffect } from "react";
+
 import { Heart } from "lucide-react";
 
 export default function LandingFooter() {
   const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useHydrated();
 
   return (
     <footer className="border-t border-border/60 bg-background pt-16 pb-12 px-4 sm:px-6 lg:px-8">

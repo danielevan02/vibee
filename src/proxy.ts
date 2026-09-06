@@ -3,7 +3,7 @@ import { getSessionCookie } from "better-auth/cookies";
 
 const protectedPaths = ["/home", "/explore", "/bookmarks", "/notifications", "/profile"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Always allow Better Auth API routes

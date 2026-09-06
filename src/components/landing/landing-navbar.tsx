@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useHydrated } from "@/hooks/use-hydrated";
 import Image from "next/image";
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "next-themes";
 import {
   motion,
@@ -83,7 +84,7 @@ function NavShell({ children, drawer }: { children: ReactNode; drawer: ReactNode
 
 export default function LandingNavbar() {
   const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [entered, setEntered] = useState(false);
 
@@ -91,36 +92,31 @@ export default function LandingNavbar() {
   // One element that never unmounts beats a shared `layoutId` here: layoutId
   // morphs boxes with scaleX/scaleY, which distorts the border radius and the
   // 1px border whenever the links differ in width.
+  // `instant` travels with the geometry instead of living in a ref: reading a
+  // ref during render is not reactive and React's rules now reject it.
   const [pill, setPill] = useState<{
     x: number;
     y: number;
     width: number;
     height: number;
+    instant: boolean;
   } | null>(null);
   const [pillVisible, setPillVisible] = useState(false);
-  const pillPlaced = useRef(false);
 
-  // The first placement must not animate in from x:0/width:0.
-  const instant = !pillPlaced.current;
-
-  useEffect(() => {
-    if (pill) pillPlaced.current = true;
-  }, [pill]);
+  const instant = pill?.instant ?? true;
 
   const movePillTo = (el: HTMLElement) => {
     // `offsetLeft`/`offsetTop` resolve against <nav>, which is `relative`.
-    setPill({
+    setPill((prev) => ({
       x: el.offsetLeft,
       y: el.offsetTop,
       width: el.offsetWidth,
       height: el.offsetHeight,
-    });
+      // The first placement must not animate in from x:0/width:0.
+      instant: prev === null,
+    }));
     setPillVisible(true);
   };
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const navLinks = [
     { label: "Feed", href: "#feed-spotlight" },

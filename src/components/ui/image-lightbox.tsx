@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
@@ -39,16 +40,13 @@ export default function ImageLightbox({
   author,
   time,
 }: ImageLightboxProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [isZoomed, setIsZoomed] = useState(false);
 
   // Normalize image list
   const allImages = images && images.length > 0 ? images : src ? [src] : [];
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Sync index when opening
   useEffect(() => {

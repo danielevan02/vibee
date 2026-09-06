@@ -58,6 +58,7 @@ export default function PostCard({
 }: PostCardProps) {
   const { data: session } = authClient.useSession();
   const { setPosts } = usePost();
+  const [commentCount, setCommentCount] = useState(post._count.comments);
   const isAuthor = session?.user ? session.user.id === post.authorId : false;
 
   let relativeTime = "";
@@ -368,7 +369,7 @@ export default function PostCard({
             <Dialog>
               <DialogTrigger className="flex items-center gap-1.5 hover:text-foreground transition-colors duration-200 cursor-pointer group/comment">
                 <MessageCircle className="w-4 h-4" strokeWidth={1.75} />
-                <span>{post._count.comments}</span>
+                <span>{commentCount}</span>
               </DialogTrigger>
               <DialogContent
                 mobileSheet
@@ -382,6 +383,9 @@ export default function PostCard({
                   wordLimit={wordLimit}
                   words={words}
                   comments={comments}
+                  onCommentCountChange={(delta) =>
+                    setCommentCount((prev) => prev + delta)
+                  }
                 />
               </DialogContent>
             </Dialog>
