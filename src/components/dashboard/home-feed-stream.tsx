@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { User } from "@prisma/client";
+import { User } from "@/db/schema";
 import { Flame, Clock } from "lucide-react";
 import { motion } from "motion/react";
 import InputPost from "@/components/input-post";

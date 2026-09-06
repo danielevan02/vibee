@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Comment, Post, User } from "@prisma/client";
+import { Comment, Post, User } from "@/db/schema";
 import { Fragment, useState, useRef } from "react";
 import { Button } from "../ui/button";
 import {

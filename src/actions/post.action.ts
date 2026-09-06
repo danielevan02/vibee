@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/db";
 import { onAuthenticateUser } from "./user.action";
 
 export async function createPost({

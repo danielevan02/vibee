@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql" 
-  url      = env("DATABASE_URL")
+  // Prisma 7: the connection URL lives in prisma.config.ts (for the CLI) and is
+  // supplied to PrismaClient through a driver adapter (for the app).
+  provider = "postgresql"
 }
 
 // Model untuk Pengguna (User)

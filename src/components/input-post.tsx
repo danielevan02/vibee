@@ -12,7 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import ImageLightbox from "./ui/image-lightbox";
-import { User } from "@prisma/client";
+import { User } from "@/db/schema";
 import { useRef, useState } from "react";
 import { useUploadThing } from "@/lib/uploadThing/helpers";
 import { createPost } from "@/actions/post.action";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Comment, User } from "@prisma/client";
+import { Comment, User } from "@/db/schema";
 import { formatDistanceToNowStrict, format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import PostCard, { PostCardProps } from "@/components/card/post-card";
 import PostSkeleton from "@/components/card/post-skeleton";
 import { Loader2, MessageSquareDashed, Flame } from "lucide-react";
-import { User } from "@prisma/client";
+import { User } from "@/db/schema";
 import { usePost } from "@/lib/stores";
 
 export default function PostList({

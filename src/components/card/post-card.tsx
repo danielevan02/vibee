@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useState } from "react";
 import ImageLightbox from "../ui/image-lightbox";
 import { motion, AnimatePresence } from "motion/react";
-import { Comment, Post, User } from "@prisma/client";
+import { Comment, Post, User } from "@/db/schema";
 import {
   Dialog,
   DialogContent,
