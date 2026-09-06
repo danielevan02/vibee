@@ -171,9 +171,9 @@ export default function UserProfilePage({
   const handleFollowToggle = async () => {
     if (!profile) return;
     try {
-      const res = await toggleFollowUser(profile.id);
-      if (res.status === 200 && typeof res.isFollowing === "boolean") {
-        const nextFollowing = res.isFollowing;
+      const result = await toggleFollowUser(profile.id);
+      if (result.ok) {
+        const nextFollowing = result.data.isFollowing;
         setIsFollowing(nextFollowing);
         setProfile((prev) =>
           prev

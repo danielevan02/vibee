@@ -22,6 +22,7 @@ import { markNotificationsAsRead, deleteNotification, markSingleNotificationAsRe
 import MentionText from "@/components/ui/mention-text";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 
 interface NotificationItem {
   id: string;
@@ -71,12 +72,12 @@ export default function NotificationsPage() {
 
   const handleMarkAllRead = () => {
     startTransition(async () => {
-      const res = await markNotificationsAsRead();
-      if (res.status === 200) {
-        setNotifications((prev) =>
-          prev.map((n) => ({ ...n, read: true }))
-        );
+      const result = await markNotificationsAsRead();
+      if (result.ok) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
         toast.success("All notifications marked as read!");
+      } else {
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     });
   };
@@ -85,10 +86,12 @@ export default function NotificationsPage() {
     e.preventDefault();
     e.stopPropagation();
     try {
-      const res = await deleteNotification(id);
-      if (res.status === 200) {
+      const result = await deleteNotification(id);
+      if (result.ok) {
         setNotifications((prev) => prev.filter((n) => n.id !== id));
         toast.success("Notification removed");
+      } else {
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     } catch {
       toast.error("Failed to delete notification");

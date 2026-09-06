@@ -9,6 +9,7 @@ import { getSuggestedUsers } from "@/server/data/user";
 import { toggleFollowUser } from "@/server/actions/user";
 import { getTrendingTopics } from "@/server/data/explore";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 
 interface RealSuggestedUser {
   id: string;
@@ -64,21 +65,21 @@ export default function AppRightRail() {
 
   const handleFollowToggle = async (targetUser: RealSuggestedUser) => {
     try {
-      const res = await toggleFollowUser(targetUser.id);
-      if (res.status === 200) {
-        setSuggestedUsers((prev) =>
-          prev.map((u) =>
-            u.id === targetUser.id
-              ? { ...u, isFollowing: res.isFollowing }
-              : u
-          )
-        );
-        toast.success(
-          res.isFollowing
-            ? `Followed @${targetUser.username}`
-            : `Unfollowed @${targetUser.username}`
-        );
+      const result = await toggleFollowUser(targetUser.id);
+      if (!result.ok) {
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
+        return;
       }
+
+      const { isFollowing } = result.data;
+      setSuggestedUsers((prev) =>
+        prev.map((u) => (u.id === targetUser.id ? { ...u, isFollowing } : u))
+      );
+      toast.success(
+        isFollowing
+          ? `Followed @${targetUser.username}`
+          : `Unfollowed @${targetUser.username}`
+      );
     } catch {
       toast.error("Failed to update follow status");
     }

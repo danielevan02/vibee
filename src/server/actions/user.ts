@@ -1,22 +1,24 @@
 "use server";
 
-"use server";
-
 import { prisma } from "@/db";
+import { updateProfileSchema, userIdSchema, type UpdateProfileInput } from "@/lib/validations/user";
+import { getCurrentUser } from "@/server/session";
+import type { ActionResult } from "@/types/action";
+import type { User } from "@/db/schema";
 import { onAuthenticateUser } from "@/server/data/user";
 import { revalidatePath } from "next/cache";
 
-export async function updateUserProfile(data: {
-  name?: string;
-  bio?: string;
-  website?: string;
-  location?: string;
-}) {
+export async function updateUserProfile(
+  input: UpdateProfileInput,
+): Promise<ActionResult<User>> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "unauthorized" };
+
+  const parsed = updateProfileSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "validation" };
+  const data = parsed.data;
+
   try {
-    const { user } = await onAuthenticateUser();
-    if (!user) {
-      return { status: 401, message: "Unauthorized" };
-    }
 
     const updated = await prisma.user.update({
       where: { id: user.id },
@@ -31,29 +33,27 @@ export async function updateUserProfile(data: {
     revalidatePath(`/profile/${user.username}`);
     revalidatePath("/home");
 
-    return {
-      status: 200,
-      message: "Profile updated successfully!",
-      user: updated,
-    };
+    return { ok: true, data: updated };
   } catch (error) {
-    console.error("updateUserProfile error:", error);
-    return {
-      status: 500,
-      message: "Failed to update profile",
-    };
+    console.error("updateUserProfile:", error);
+    return { ok: false, error: "unknown" };
   }
 }
 
-export async function toggleFollowUser(targetUserId: string) {
+export async function toggleFollowUser(
+  targetUserId: string,
+): Promise<ActionResult<{ isFollowing: boolean }>> {
+  const parsedTarget = userIdSchema.safeParse(targetUserId);
+  if (!parsedTarget.success) return { ok: false, error: "validation" };
+
   try {
     const { user } = await onAuthenticateUser();
     if (!user) {
-      return { status: 401, message: "Unauthorized" };
+      return { ok: false, error: "unauthorized" };
     }
 
     if (user.id === targetUserId) {
-      return { status: 400, message: "You cannot follow yourself" };
+      return { ok: false, error: "validation" };
     }
 
     const existingFollow = await prisma.follow.findUnique({
@@ -119,16 +119,9 @@ export async function toggleFollowUser(targetUserId: string) {
     }
     revalidatePath("/notifications");
 
-    return {
-      status: 200,
-      isFollowing,
-      message: isFollowing ? "Followed!" : "Unfollowed",
-    };
+    return { ok: true, data: { isFollowing } };
   } catch (error) {
-    console.error("toggleFollowUser error:", error);
-    return {
-      status: 500,
-      message: "Failed to toggle follow status",
-    };
+    console.error("toggleFollowUser:", error);
+    return { ok: false, error: "unknown" };
   }
 }

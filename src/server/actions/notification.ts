@@ -1,75 +1,82 @@
 "use server";
 
-"use server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
 import { prisma } from "@/db";
-import { onAuthenticateUser } from "@/server/data/user";
-import { revalidatePath } from "next/cache";
+import { getCurrentUserId } from "@/server/session";
+import type { ActionResult } from "@/types/action";
 
-export async function markNotificationsAsRead() {
+const notificationIdSchema = z.uuid();
+
+function revalidateNotificationViews() {
+  revalidatePath("/notifications");
+  revalidatePath("/home");
+}
+
+export async function markNotificationsAsRead(): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
   try {
-    const { user } = await onAuthenticateUser();
-    if (!user) return { status: 401 };
-
     await prisma.notification.updateMany({
-      where: {
-        recipientId: user.id,
-        read: false,
-      },
-      data: {
-        read: true,
-      },
+      where: { recipientId: userId, read: false },
+      data: { read: true },
     });
 
-    revalidatePath("/notifications");
-    revalidatePath("/home");
-
-    return { status: 200, success: true };
+    revalidateNotificationViews();
+    return { ok: true, data: undefined };
   } catch (error) {
-    console.error("markNotificationsAsRead error:", error);
-    return { status: 500 };
+    console.error("markNotificationsAsRead:", error);
+    return { ok: false, error: "unknown" };
   }
 }
 
-export async function markSingleNotificationAsRead(notificationId: string) {
-  try {
-    const { user } = await onAuthenticateUser();
-    if (!user) return { status: 401 };
+export async function markSingleNotificationAsRead(
+  notificationId: string,
+): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
 
-    await prisma.notification.update({
-      where: {
-        id: notificationId,
-        recipientId: user.id,
-      },
-      data: {
-        read: true,
-      },
+  const parsed = notificationIdSchema.safeParse(notificationId);
+  if (!parsed.success) return { ok: false, error: "validation" };
+
+  try {
+    // Scoping by recipientId is the authorisation: another user's id simply
+    // matches no rows rather than updating someone else's notification.
+    await prisma.notification.updateMany({
+      where: { id: parsed.data, recipientId: userId },
+      data: { read: true },
     });
 
-    revalidatePath("/notifications");
-    return { status: 200, success: true };
+    revalidateNotificationViews();
+    return { ok: true, data: undefined };
   } catch (error) {
-    console.error("markSingleNotificationAsRead error:", error);
-    return { status: 500 };
+    console.error("markSingleNotificationAsRead:", error);
+    return { ok: false, error: "unknown" };
   }
 }
 
-export async function deleteNotification(notificationId: string) {
-  try {
-    const { user } = await onAuthenticateUser();
-    if (!user) return { status: 401, message: "Unauthorized" };
+export async function deleteNotification(
+  notificationId: string,
+): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
 
-    await prisma.notification.delete({
-      where: {
-        id: notificationId,
-        recipientId: user.id,
-      },
+  const parsed = notificationIdSchema.safeParse(notificationId);
+  if (!parsed.success) return { ok: false, error: "validation" };
+
+  try {
+    const { count } = await prisma.notification.deleteMany({
+      where: { id: parsed.data, recipientId: userId },
     });
 
-    revalidatePath("/notifications");
-    return { status: 200, success: true, message: "Notification deleted" };
+    if (count === 0) return { ok: false, error: "not_found" };
+
+    revalidateNotificationViews();
+    return { ok: true, data: undefined };
   } catch (error) {
-    console.error("deleteNotification error:", error);
-    return { status: 500, message: "Failed to delete notification" };
+    console.error("deleteNotification:", error);
+    return { ok: false, error: "unknown" };
   }
 }

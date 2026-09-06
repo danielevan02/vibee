@@ -17,6 +17,7 @@ import { useRef, useState } from "react";
 import { useUploadThing } from "@/lib/uploadthing-client";
 import { createPost } from "@/server/actions/post";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import { AnimatePresence, motion } from "motion/react";
 import { usePost } from "@/lib/stores";
 
@@ -111,49 +112,43 @@ export default function InputPost({ user }: { user?: User | null }) {
 
     try {
       setLoading(true);
-      let messageRes, statusRes, createdPost;
 
+      // Upload first when there is media, so the post is only created once the
+      // URLs actually exist.
+      let uploadedUrls: string[] = [];
       if (files.length > 0) {
         toast.loading(
           `Uploading ${files.length} media ${files.length > 1 ? "files" : "file"}...`,
           { id: "create-post" }
         );
-        const res = await startUpload(files);
-        if (!res || res.length === 0) {
+        const uploaded = await startUpload(files);
+        if (!uploaded || uploaded.length === 0) {
           throw new Error("Media upload failed");
         }
-        const uploadedUrls = res.map((r) => r.ufsUrl).filter(Boolean);
+        uploadedUrls = uploaded.map((r) => r.ufsUrl).filter(Boolean);
         if (uploadedUrls.length === 0) {
           throw new Error("Could not retrieve uploaded media URLs");
         }
-
-        const { message, status, post } = await createPost({
-          content,
-          imageUrl: uploadedUrls[0],
-          imageUrls: uploadedUrls,
-        });
-        messageRes = message;
-        statusRes = status;
-        createdPost = post;
       } else {
         toast.loading("Publishing vibe...", { id: "create-post" });
-        const { message, status, post } = await createPost({
-          content,
-        });
-        messageRes = message;
-        statusRes = status;
-        createdPost = post;
       }
 
-      if (statusRes === 201 && createdPost) {
-        setPosts((prev) => [createdPost, ...prev]);
+      const result = await createPost({
+        content,
+        ...(uploadedUrls.length > 0
+          ? { imageUrl: uploadedUrls[0], imageUrls: uploadedUrls }
+          : {}),
+      });
+
+      if (result.ok) {
+        setPosts((prev) => [result.data, ...prev]);
         setContent("");
         setFiles([]);
         setPreviewUrls([]);
         setActiveSlide(0);
-        toast.success(messageRes || "Vibe published successfully!", { id: "create-post" });
+        toast.success("Vibe published successfully!", { id: "create-post" });
       } else {
-        toast.error(messageRes || "Could not publish post", { id: "create-post" });
+        toast.error(ACTION_ERROR_MESSAGE[result.error], { id: "create-post" });
       }
     } catch (error) {
       console.error(error);

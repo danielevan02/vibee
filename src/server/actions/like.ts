@@ -1,92 +1,75 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+
 import { prisma } from "@/db";
-import { onAuthenticateUser } from "@/server/data/user";
+import { isNotFound, isUniqueViolation } from "@/lib/db-errors";
+import { postIdSchema } from "@/lib/validations/post";
+import { getCurrentUserId } from "@/server/session";
+import type { ActionResult } from "@/types/action";
 
-export async function createLike({postId}: {postId: string;}){
+export async function createLike(input: { postId: string }): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  const parsed = postIdSchema.safeParse(input.postId);
+  if (!parsed.success) return { ok: false, error: "validation" };
+  const postId = parsed.data;
+
   try {
-    const { user } = await onAuthenticateUser()
-    if(!user){
-      return {
-        status: 401,
-        message: "You're not authenticated!"
-      }
-    }
+    await prisma.like.create({ data: { authorId: userId, postId } });
 
-    await prisma.like.create({
-      data: {
-        authorId: user.id,
-        postId
-      }
-    });
-
-    // Notify post author if not liking own post
-    const targetPost = await prisma.post.findUnique({
+    const post = await prisma.post.findUnique({
       where: { id: postId },
       select: { authorId: true, content: true },
     });
 
-    if (targetPost && targetPost.authorId !== user.id) {
+    if (post && post.authorId !== userId) {
       await prisma.notification.create({
         data: {
           type: "LIKE",
-          content: targetPost.content?.slice(0, 100) || "your vibe",
-          recipientId: targetPost.authorId,
-          senderId: user.id,
+          content: post.content?.slice(0, 100) || "your vibe",
+          recipientId: post.authorId,
+          senderId: userId,
           postId,
         },
       });
     }
 
-    return {
-      status: 201,
-    }
+    revalidatePath("/home");
+    return { ok: true, data: undefined };
   } catch (error) {
-    console.error("createLike error:", error);
-    return {
-      status: 500,
-      message: 'Internal Server Error'
-    }
+    // Liking twice races through the optimistic UI; treat it as already-liked
+    // rather than a server error.
+    if (isUniqueViolation(error)) return { ok: true, data: undefined };
+    console.error("createLike:", error);
+    return { ok: false, error: "unknown" };
   }
 }
 
-export async function removeLike({postId}: {postId: string;}){
+export async function removeLike(input: { postId: string }): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  const parsed = postIdSchema.safeParse(input.postId);
+  if (!parsed.success) return { ok: false, error: "validation" };
+  const postId = parsed.data;
+
   try {
-    const { user } = await onAuthenticateUser()
-    if(!user){
-      return {
-        status: 401,
-        message: "You're not authenticated!"
-      }
-    }
-
     await prisma.like.delete({
-      where: {
-        authorId_postId: {
-          authorId: user.id,
-          postId
-        }
-      }
+      where: { authorId_postId: { authorId: userId, postId } },
     });
 
-    // Delete like notification if still unread
+    // Drop the notification too, but only while it is still unread.
     await prisma.notification.deleteMany({
-      where: {
-        type: "LIKE",
-        senderId: user.id,
-        postId,
-        read: false,
-      },
+      where: { type: "LIKE", senderId: userId, postId, read: false },
     });
 
-    return {
-      status: 200,
-    }
+    revalidatePath("/home");
+    return { ok: true, data: undefined };
   } catch (error) {
-    console.error("removeLike error:", error);
-    return {
-      status: 500,
-      message: 'Internal Server Error'
-    }
+    if (isNotFound(error)) return { ok: true, data: undefined };
+    console.error("removeLike:", error);
+    return { ok: false, error: "unknown" };
   }
 }

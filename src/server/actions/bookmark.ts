@@ -1,66 +1,37 @@
 "use server";
 
-"use server";
+import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/db";
-import { onAuthenticateUser } from "@/server/data/user";
+import { postIdSchema } from "@/lib/validations/post";
+import { getCurrentUserId } from "@/server/session";
+import type { ActionResult } from "@/types/action";
 
-export async function toggleBookmark(postId: string) {
+export async function toggleBookmark(
+  postId: string,
+): Promise<ActionResult<{ isBookmarked: boolean }>> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  const parsed = postIdSchema.safeParse(postId);
+  if (!parsed.success) return { ok: false, error: "validation" };
+
   try {
-    const { user } = await onAuthenticateUser();
-
-    if (!user) {
-      return {
-        status: 401,
-        message: "You're not authenticated!",
-        isBookmarked: false,
-      };
-    }
-
-    // Check if bookmark already exists
-    const existingBookmark = await prisma.bookmark.findUnique({
-      where: {
-        userId_postId: {
-          userId: user.id,
-          postId,
-        },
-      },
+    const existing = await prisma.bookmark.findUnique({
+      where: { userId_postId: { userId, postId: parsed.data } },
     });
 
-    if (existingBookmark) {
-      // Remove bookmark
-      await prisma.bookmark.delete({
-        where: {
-          id: existingBookmark.id,
-        },
-      });
-
-      return {
-        status: 200,
-        isBookmarked: false,
-        message: "Removed from bookmarks",
-      };
-    } else {
-      // Create bookmark
-      await prisma.bookmark.create({
-        data: {
-          userId: user.id,
-          postId,
-        },
-      });
-
-      return {
-        status: 200,
-        isBookmarked: true,
-        message: "Saved to bookmarks",
-      };
+    if (existing) {
+      await prisma.bookmark.delete({ where: { id: existing.id } });
+      revalidatePath("/bookmarks");
+      return { ok: true, data: { isBookmarked: false } };
     }
+
+    await prisma.bookmark.create({ data: { userId, postId: parsed.data } });
+    revalidatePath("/bookmarks");
+    return { ok: true, data: { isBookmarked: true } };
   } catch (error) {
-    console.error("toggleBookmark error:", error);
-    return {
-      status: 500,
-      message: "Failed to update bookmark",
-      isBookmarked: false,
-    };
+    console.error("toggleBookmark:", error);
+    return { ok: false, error: "unknown" };
   }
 }

@@ -1,26 +1,26 @@
 "use server";
 
-import { prisma } from "@/db"
-import { onAuthenticateUser } from "@/server/data/user"
 import { revalidatePath } from "next/cache";
 
-export async function createComment({
-  content,
-  postId,
-  parentId,
-}: {
-  content: string;
-  postId: string;
-  parentId?: string | null;
-}) {
+import { prisma } from "@/db";
+import { createCommentSchema, type CreateCommentInput } from "@/lib/validations/comment";
+import { getCurrentUserId } from "@/server/session";
+import type { ActionResult } from "@/types/action";
+import type { Comment, User } from "@/db/schema";
+
+type CreatedComment = Comment & { author: User };
+
+export async function createComment(
+  input: CreateCommentInput,
+): Promise<ActionResult<CreatedComment>> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  const parsed = createCommentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "validation" };
+  const { content, postId, parentId } = parsed.data;
+
   try {
-    const { user } = await onAuthenticateUser()
-    if(!user){
-      return {
-        status: 401,
-        message: "You're not authenticated"
-      }
-    }
 
     // Single-level threading. If someone replies to a reply, the new comment is
     // attached to that reply's parent instead of nesting deeper. The check lives
@@ -35,7 +35,7 @@ export async function createComment({
       });
 
       if (!parent || parent.postId !== postId) {
-        return { status: 404, message: "The comment you replied to no longer exists" };
+        return { ok: false, error: "not_found" };
       }
 
       resolvedParentId = parent.parentId ?? parent.id;
@@ -44,7 +44,7 @@ export async function createComment({
 
     const comment = await prisma.comment.create({
       data: {
-        authorId: user.id,
+        authorId: userId,
         content,
         postId,
         parentId: resolvedParentId,
@@ -71,7 +71,7 @@ export async function createComment({
               mode: "insensitive",
             },
             id: {
-              not: user.id, // Don't notify oneself
+              not: userId, // Don't notify oneself
             },
           },
           select: {
@@ -85,7 +85,7 @@ export async function createComment({
               type: "MENTION",
               content: content.slice(0, 140),
               recipientId: mUser.id,
-              senderId: user.id,
+              senderId: userId,
               postId: postId,
             })),
           });
@@ -100,10 +100,10 @@ export async function createComment({
       });
 
       const recipients = new Set<string>();
-      if (targetPost && targetPost.authorId !== user.id) {
+      if (targetPost && targetPost.authorId !== userId) {
         recipients.add(targetPost.authorId);
       }
-      if (parentAuthorId && parentAuthorId !== user.id) {
+      if (parentAuthorId && parentAuthorId !== userId) {
         recipients.add(parentAuthorId);
       }
 
@@ -113,7 +113,7 @@ export async function createComment({
             type: "COMMENT" as const,
             content: content.slice(0, 140),
             recipientId,
-            senderId: user.id,
+            senderId: userId,
             postId: postId,
           })),
         });
@@ -122,16 +122,9 @@ export async function createComment({
 
     revalidatePath('/home');
 
-    return {
-      status: 201,
-      message: "Comment Posted!",
-      comment
-    }
+    return { ok: true, data: comment };
   } catch (error) {
-    console.error("createComment error:", error);
-    return {
-      status: 500,
-      message: "Internal Server Error"
-    }
+    console.error("createComment:", error);
+    return { ok: false, error: "unknown" };
   }
 }

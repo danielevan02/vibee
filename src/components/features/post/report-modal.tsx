@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { createReport } from "@/server/actions/report";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import { cn } from "@/lib/utils";
 
 interface ReportModalProps {
@@ -74,26 +75,26 @@ export default function ReportModal({
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const res = await createReport({
+      const result = await createReport({
         postId,
         reason: selectedReason,
         details,
       });
 
-      if (res.status === 201) {
+      if (result.ok) {
         setSubmitted(true);
-        toast.success(res.message);
+        toast.success("Report submitted. Thank you for helping keep VIBEE safe!");
         setTimeout(() => {
           setSubmitted(false);
           setDetails("");
           setSelectedReason("SPAM");
           onClose();
         }, 1200);
-      } else if (res.status === 409) {
-        toast.info(res.message);
+      } else if (result.error === "conflict") {
+        toast.info("You have already reported this vibe.");
         onClose();
       } else {
-        toast.error(res.message || "Failed to submit report");
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     } catch {
       toast.error("Failed to submit report. Please try again.");

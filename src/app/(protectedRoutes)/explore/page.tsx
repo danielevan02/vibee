@@ -26,6 +26,7 @@ import PostCard from "@/components/features/post/post-card";
 import ImageLightbox from "@/components/ui/image-lightbox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import { formatDistanceToNowStrict, format } from "date-fns";
 
 type TabType = "trending" | "latest" | "people" | "media";
@@ -140,26 +141,34 @@ function ExploreContent() {
 
   const handleFollowToggle = async (targetUser: ExploreUser) => {
     try {
-      const res = await toggleFollowUser(targetUser.id);
-      if (res.status === 200) {
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === targetUser.id
-              ? {
-                ...u,
-                isFollowing: res.isFollowing,
-                _count: {
-                  ...u._count,
-                  followers: res.isFollowing
-                    ? u._count.followers + 1
-                    : Math.max(0, u._count.followers - 1),
-                },
-              }
-              : u
-          )
-        );
-        toast.success(res.isFollowing ? `Followed @${targetUser.username}` : `Unfollowed @${targetUser.username}`);
+      const result = await toggleFollowUser(targetUser.id);
+      if (!result.ok) {
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
+        return;
       }
+
+      const { isFollowing } = result.data;
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === targetUser.id
+            ? {
+              ...u,
+              isFollowing,
+              _count: {
+                ...u._count,
+                followers: isFollowing
+                  ? u._count.followers + 1
+                  : Math.max(0, u._count.followers - 1),
+              },
+            }
+            : u
+        )
+      );
+      toast.success(
+        isFollowing
+          ? `Followed @${targetUser.username}`
+          : `Unfollowed @${targetUser.username}`
+      );
     } catch {
       toast.error("Failed to update follow status");
     }

@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { updateUserProfile } from "@/server/actions/user";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import { motion, AnimatePresence } from "motion/react";
 
 interface EditProfileModalProps {
@@ -53,24 +54,20 @@ export default function EditProfileModal({
 
     try {
       setLoading(true);
-      const res = await updateUserProfile({
-        name,
-        bio,
-        website,
-        location,
-      });
+      const result = await updateUserProfile({ name, bio, website, location });
 
-      if (res.status === 200) {
+      if (result.ok) {
         toast.success("Profile updated successfully!");
+        // Report what the server actually stored, not what was typed.
         onSuccess({
-          name,
-          bio: bio.trim() || null,
-          website: website.trim() || null,
-          location: location.trim() || null,
+          name: result.data.name,
+          bio: result.data.bio,
+          website: result.data.website,
+          location: result.data.location,
         });
         onClose();
       } else {
-        toast.error(res.message || "Failed to update profile");
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     } catch {
       toast.error("Failed to update profile");

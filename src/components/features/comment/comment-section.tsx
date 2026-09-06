@@ -18,10 +18,11 @@ import {
 } from "lucide-react";
 import CommentCard from "@/components/features/comment/comment-card";
 import ImageLightbox from "@/components/ui/image-lightbox";
-import { WORD_LIMIT } from "@/lib/constants";
+import { WORD_LIMIT } from "@/config/constants";
 import { createComment } from "@/server/actions/comment";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import MentionText from "@/components/ui/mention-text";
 import MentionTextarea, { MentionTextareaRef } from "@/components/ui/mention-textarea";
 import EmojiPicker from "@/components/ui/emoji-picker";
@@ -108,13 +109,14 @@ export default function CommentSection({
 
     try {
       setReplyLoading(true);
-      const { message, status, comment } = await createComment({
+      const result = await createComment({
         content: replyContent,
         postId: post.id,
         parentId: replyTo.id,
       });
 
-      if (status === 201 && comment) {
+      if (result.ok) {
+        const comment = result.data;
         // The server flattens depth, so trust `comment.parentId` over the id we
         // sent: replying to a reply lands under that reply's parent instead.
         const parentId = comment.parentId;
@@ -129,9 +131,9 @@ export default function CommentSection({
         );
         onCommentCountChange?.(1);
         setReplyTo(null);
-        toast.success(message || "Reply posted!");
+        toast.success("Reply posted!");
       } else {
-        toast.error(message || "Failed to post reply");
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     } catch (error) {
       console.error(error);
@@ -146,19 +148,20 @@ export default function CommentSection({
 
     try {
       setLoading(true);
-      const { message, status, comment } = await createComment({
+      const result = await createComment({
         content,
         postId: post.id,
       });
 
-      if (status === 201 && comment) {
-        toast.success(message || "Reply posted to thread!");
+      if (result.ok) {
+        const comment = result.data;
+        toast.success("Reply posted to thread!");
         setCommentList((prev) => [comment, ...prev]);
         onCommentCountChange?.(1);
         setContent("");
         setWordCount(0);
       } else {
-        toast.error(message || "Failed to post comment");
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     } catch (error) {
       console.error(error);

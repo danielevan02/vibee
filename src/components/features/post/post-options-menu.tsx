@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import { deletePost } from "@/server/actions/post";
 import { toggleFollowUser } from "@/server/actions/user";
 import {
@@ -84,9 +85,9 @@ export default function PostOptionsMenu({
   const handleFollowClick = async () => {
     setIsFollowLoading(true);
     try {
-      const res = await toggleFollowUser(authorId);
-      if (res.status === 200) {
-        const nextFollowing = Boolean(res.isFollowing);
+      const result = await toggleFollowUser(authorId);
+      if (result.ok) {
+        const { isFollowing: nextFollowing } = result.data;
         setIsFollowing(nextFollowing);
         toast.success(
           nextFollowing
@@ -94,7 +95,7 @@ export default function PostOptionsMenu({
             : `Unfollowed @${authorUsername}`
         );
       } else {
-        toast.error(res.message || "Failed to update follow status");
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     } catch {
       toast.error("Failed to update follow status");
@@ -112,16 +113,14 @@ export default function PostOptionsMenu({
   const handleDeleteConfirm = async () => {
     setIsDeleting(true);
     try {
-      const res = await deletePost(postId);
-      if (res.status === 200) {
+      const result = await deletePost(postId);
+      if (result.ok) {
         toast.success("Vibe deleted successfully");
         setIsDeleteDialogOpen(false);
         setIsOpen(false);
-        if (onDeletePost) {
-          onDeletePost();
-        }
+        onDeletePost?.();
       } else {
-        toast.error(res.message || "Failed to delete vibe");
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     } catch {
       toast.error("An error occurred while deleting vibe");

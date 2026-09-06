@@ -1,28 +1,21 @@
 "use server";
 
-"use server";
+import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/db";
-import { onAuthenticateUser } from "@/server/data/user";
+import { createPostSchema, postIdSchema, type CreatePostInput } from "@/lib/validations/post";
+import { getCurrentUserId } from "@/server/session";
+import type { ActionResult } from "@/types/action";
 
-export async function createPost({
-  content,
-  imageUrl,
-  imageUrls,
-}: {
-  content: string;
-  imageUrl?: string;
-  imageUrls?: string[];
-}) {
+export async function createPost(input: CreatePostInput) {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false as const, error: "unauthorized" as const };
+
+  const parsed = createPostSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "validation" as const };
+  const { content, imageUrl, imageUrls } = parsed.data;
+
   try {
-    const { user } = await onAuthenticateUser();
-
-    if(!user){
-      return {
-        status: 401,
-        message: "You're not authenticated!"
-      }
-    }
 
     const finalImageUrls = imageUrls && imageUrls.length > 0
       ? imageUrls
@@ -36,7 +29,7 @@ export async function createPost({
         imageUrls: finalImageUrls,
         author: {
           connect: {
-            id: user.id
+            id: userId
           }
         },
       },
@@ -87,7 +80,7 @@ export async function createPost({
               mode: "insensitive",
             },
             id: {
-              not: user.id, // Don't notify oneself
+              not: userId, // Don't notify oneself
             },
           },
           select: {
@@ -101,7 +94,7 @@ export async function createPost({
               type: "MENTION",
               content: content.slice(0, 140),
               recipientId: mUser.id,
-              senderId: user.id,
+              senderId: userId,
               postId: post.id,
             })),
           });
@@ -109,63 +102,37 @@ export async function createPost({
       }
     }
 
-    return {
-      status: 201,
-      message: "Post Created!",
-      post
-    }
+    revalidatePath("/home");
+    return { ok: true as const, data: post };
   } catch (error) {
-    console.error("createPost error:", error);
-    return {
-      status: 500,
-      message: "Internal Server Error"
-    }
+    console.error("createPost:", error);
+    return { ok: false as const, error: "unknown" as const };
   }
 }
 
-export async function deletePost(postId: string) {
+export async function deletePost(postId: string): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  const parsed = postIdSchema.safeParse(postId);
+  if (!parsed.success) return { ok: false, error: "validation" };
+
   try {
-    const { user } = await onAuthenticateUser();
-
-    if (!user) {
-      return {
-        status: 401,
-        message: "You're not authenticated!",
-      };
-    }
-
     const post = await prisma.post.findUnique({
-      where: { id: postId },
+      where: { id: parsed.data },
       select: { authorId: true },
     });
 
-    if (!post) {
-      return {
-        status: 404,
-        message: "Post not found",
-      };
-    }
+    if (!post) return { ok: false, error: "not_found" };
+    // Ownership is checked on the server; the UI only hides the button.
+    if (post.authorId !== userId) return { ok: false, error: "forbidden" };
 
-    if (post.authorId !== user.id) {
-      return {
-        status: 403,
-        message: "You are not authorized to delete this post",
-      };
-    }
+    await prisma.post.delete({ where: { id: parsed.data } });
+    revalidatePath("/home");
 
-    await prisma.post.delete({
-      where: { id: postId },
-    });
-
-    return {
-      status: 200,
-      message: "Post deleted successfully",
-    };
+    return { ok: true, data: undefined };
   } catch (error) {
-    console.error("deletePost error:", error);
-    return {
-      status: 500,
-      message: "Failed to delete post",
-    };
+    console.error("deletePost:", error);
+    return { ok: false, error: "unknown" };
   }
 }

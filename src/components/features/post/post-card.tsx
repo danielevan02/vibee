@@ -17,6 +17,7 @@ import {
 import { createLike, removeLike } from "@/server/actions/like";
 import { toggleBookmark } from "@/server/actions/bookmark";
 import { toast } from "sonner";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import CommentSection from "@/components/features/comment/comment-section";
 import MentionText from "@/components/ui/mention-text";
 import { authClient } from "@/lib/auth-client";
@@ -100,23 +101,51 @@ export default function PostCard({
       ? words.slice(0, wordLimit).join(" ") + "..."
       : content;
 
-  const handleLike = async () => {
-    setActive((prev) => !prev);
-    setLike((prev) => (active ? prev - 1 : prev + 1));
+  // One handler for both bookmark buttons (the options menu and the action bar),
+  // which previously carried two copies of the same optimistic logic.
+  const handleToggleBookmark = async () => {
+    const next = !isBookmarked;
+    setIsBookmarked(next);
+
     try {
-      if (!active) {
-        const { message } = await createLike({ postId: post.id });
-        if (message) {
-          toast.error(message);
-        }
+      const result = await toggleBookmark(post.id);
+      if (result.ok) {
+        setIsBookmarked(result.data.isBookmarked);
+        toast.success(
+          result.data.isBookmarked
+            ? "Saved to bookmarks"
+            : "Removed from bookmarks",
+        );
       } else {
-        const { message } = await removeLike({ postId: post.id });
-        if (message) {
-          toast.error(message);
-        }
+        setIsBookmarked(!next);
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
+      }
+    } catch {
+      setIsBookmarked(!next);
+      toast.error("Failed to update bookmark");
+    }
+  };
+
+  const handleLike = async () => {
+    const wasActive = active;
+    setActive(!wasActive);
+    setLike((prev) => (wasActive ? prev - 1 : prev + 1));
+
+    try {
+      const result = wasActive
+        ? await removeLike({ postId: post.id })
+        : await createLike({ postId: post.id });
+
+      if (!result.ok) {
+        // Roll the optimistic update back rather than leaving the UI lying.
+        setActive(wasActive);
+        setLike((prev) => (wasActive ? prev + 1 : prev - 1));
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
       }
     } catch (error) {
       console.error(error);
+      setActive(wasActive);
+      setLike((prev) => (wasActive ? prev + 1 : prev - 1));
       toast.error("Can't like this post");
     }
   };
@@ -178,23 +207,7 @@ export default function PostCard({
           authorUsername={post.author.username}
           isAuthor={isAuthor}
           isBookmarked={isBookmarked}
-          onToggleBookmark={async () => {
-            const next = !isBookmarked;
-            setIsBookmarked(next);
-            try {
-              const res = await toggleBookmark(post.id);
-              if (res.status === 200) {
-                setIsBookmarked(res.isBookmarked);
-                toast.success(res.message);
-              } else {
-                setIsBookmarked(!next);
-                toast.error(res.message || "Failed to update bookmark");
-              }
-            } catch {
-              setIsBookmarked(!next);
-              toast.error("Failed to update bookmark");
-            }
-          }}
+          onToggleBookmark={handleToggleBookmark}
           onDeletePost={() => {
             setPosts((prev) => prev.filter((p) => p.id !== post.id));
           }}
@@ -404,23 +417,7 @@ export default function PostCard({
           {/* Bookmark Button */}
           <button
             type="button"
-            onClick={async () => {
-              const next = !isBookmarked;
-              setIsBookmarked(next);
-              try {
-                const res = await toggleBookmark(post.id);
-                if (res.status === 200) {
-                  setIsBookmarked(res.isBookmarked);
-                  toast.success(res.message);
-                } else {
-                  setIsBookmarked(!next);
-                  toast.error(res.message || "Failed to update bookmark");
-                }
-              } catch {
-                setIsBookmarked(!next);
-                toast.error("Failed to update bookmark");
-              }
-            }}
+            onClick={handleToggleBookmark}
             className={`p-1.5 rounded-lg hover:bg-accent/60 transition-colors cursor-pointer ${isBookmarked ? "text-amber-500" : "text-muted-foreground hover:text-foreground"
               }`}
             aria-label={isBookmarked ? "Remove bookmark" : "Bookmark vibe"}

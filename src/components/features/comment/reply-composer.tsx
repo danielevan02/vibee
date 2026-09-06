@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, SendHorizonal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MentionTextarea, { MentionTextareaRef } from "@/components/ui/mention-textarea";
-import { WORD_LIMIT } from "@/lib/constants";
+import { WORD_LIMIT } from "@/config/constants";
 
 interface ReplyComposerProps {
   /** Handle being replied to; prefilled as a mention. */
