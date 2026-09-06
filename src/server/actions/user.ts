@@ -125,3 +125,38 @@ export async function toggleFollowUser(
     return { ok: false, error: "unknown" };
   }
 }
+
+/**
+ * Mention autocomplete. A read, but keystroke-driven from a Client Component,
+ * so it is exposed as an action rather than pulling the data layer into the
+ * browser bundle.
+ */
+export async function searchMentionUsers(query: string) {
+  try {
+    const cleanQuery = query.replace(/^@/, "").trim();
+    const users = await prisma.user.findMany({
+      where: cleanQuery
+        ? {
+            OR: [
+              { username: { contains: cleanQuery, mode: "insensitive" } },
+              { name: { contains: cleanQuery, mode: "insensitive" } },
+            ],
+          }
+        : undefined,
+      take: 6,
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        photo: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+    return { status: 200, users };
+  } catch (error) {
+    console.error("searchMentionUsers error:", error);
+    return { status: 500, users: [] };
+  }
+}

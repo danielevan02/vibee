@@ -5,66 +5,26 @@
  * these directly in-process, so there is no POST round-trip and Next.js can
  * cache and stream them. Only mutations belong in server/actions.
  */
-"use server";
+import "server-only";
+
+import type { ExplorePost, ExploreUser } from "@/types/explore";
 
 import { prisma } from "@/db";
 import { onAuthenticateUser } from "@/server/data/user";
 
-export interface ExplorePost {
-  id: string;
-  content: string | null;
-  imageUrl: string | null;
-  createdAt: Date;
-  author: {
-    id: string;
-    name: string;
-    username: string;
-    photo: string | null;
-  };
-  _count: {
-    comments: number;
-    likes: number;
-  };
-  comments: {
-    id: string;
-    content: string;
-    createdAt: Date;
-    author: {
-      id: string;
-      name: string;
-      username: string;
-      photo: string | null;
-    };
-  }[];
-  likes: {
-    authorId: string;
-  }[];
-}
 
-export interface ExploreUser {
-  id: string;
-  name: string;
-  username: string;
-  photo: string | null;
-  bio: string | null;
-  _count: {
-    followers: number;
-    posts: number;
-  };
-  isFollowing?: boolean;
-}
 
 export async function getExploreData({
+  currentUserId,
   query,
   tag,
   tab = "trending",
 }: {
+  currentUserId: string | null;
   query?: string;
   tag?: string;
   tab?: "trending" | "latest" | "people" | "media";
 }) {
-  try {
-    const { user: currentUserAuth } = await onAuthenticateUser();
 
     // 1. If tab is 'people', search users
     if (tab === "people") {
@@ -96,9 +56,9 @@ export async function getExploreData({
 
       // Check following status
       let followingIds = new Set<string>();
-      if (currentUserAuth) {
+      if (currentUserId) {
         const follows = await prisma.follow.findMany({
-          where: { followerId: currentUserAuth.id },
+          where: { followerId: currentUserId },
           select: { followingId: true },
         });
         followingIds = new Set(follows.map((f) => f.followingId));
@@ -114,11 +74,7 @@ export async function getExploreData({
         isFollowing: followingIds.has(u.id),
       }));
 
-      return {
-        status: 200,
-        posts: [],
-        users: formattedUsers,
-      };
+      return { posts: [] as ExplorePost[], users: formattedUsers };
     }
 
     // 2. Otherwise query posts
@@ -197,24 +153,10 @@ export async function getExploreData({
       take: 40,
     });
 
-    return {
-      status: 200,
-      posts: posts as unknown as ExplorePost[],
-      users: [],
-    };
-  } catch (error) {
-    console.error("getExploreData error:", error);
-    return {
-      status: 500,
-      message: "Internal Server Error",
-      posts: [],
-      users: [],
-    };
-  }
+  return { posts: posts as unknown as ExplorePost[], users: [] as ExploreUser[] };
 }
 
 export async function getTrendingTopics(limit = 6) {
-  try {
     const posts = await prisma.post.findMany({
       where: {
         content: {
@@ -250,12 +192,5 @@ export async function getTrendingTopics(limit = 6) {
         posts: `${count} ${count === 1 ? "vibe" : "vibes"}`,
       }));
 
-    return {
-      status: 200,
-      topics: sortedTopics,
-    };
-  } catch (error) {
-    console.error("getTrendingTopics error:", error);
-    return { status: 500, topics: [] };
-  }
+  return sortedTopics;
 }

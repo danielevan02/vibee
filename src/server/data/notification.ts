@@ -5,27 +5,17 @@
  * these directly in-process, so there is no POST round-trip and Next.js can
  * cache and stream them. Only mutations belong in server/actions.
  */
-"use server";
+import "server-only";
 
 import { prisma } from "@/db";
 import { onAuthenticateUser } from "@/server/data/user";
 
-export async function getNotifications(filterType?: string) {
-  try {
-    const { user } = await onAuthenticateUser();
-    if (!user) {
-      return {
-        status: 401,
-        message: "Unauthorized",
-        notifications: [],
-      };
-    }
-
+export async function getNotifications(userId: string, filterType?: string) {
     const whereClause: {
       recipientId: string;
       type?: string;
     } = {
-      recipientId: user.id,
+      recipientId: userId,
     };
 
     if (filterType && filterType !== "all") {
@@ -60,35 +50,11 @@ export async function getNotifications(filterType?: string) {
       take: 50,
     });
 
-    return {
-      status: 200,
-      notifications,
-    };
-  } catch (error) {
-    console.error("getNotifications error:", error);
-    return {
-      status: 500,
-      message: "Internal Server Error",
-      notifications: [],
-    };
-  }
+  return notifications;
 }
 
-export async function getUnreadNotificationCount() {
-  try {
-    const { user } = await onAuthenticateUser();
-    if (!user) return 0;
-
-    const count = await prisma.notification.count({
-      where: {
-        recipientId: user.id,
-        read: false,
-      },
-    });
-
-    return count;
-  } catch (error) {
-    console.error("getUnreadNotificationCount error:", error);
-    return 0;
-  }
+export async function getUnreadNotificationCount(userId: string) {
+  return prisma.notification.count({
+    where: { recipientId: userId, read: false },
+  });
 }

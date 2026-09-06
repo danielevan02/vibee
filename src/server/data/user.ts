@@ -5,49 +5,21 @@
  * these directly in-process, so there is no POST round-trip and Next.js can
  * cache and stream them. Only mutations belong in server/actions.
  */
-"use server";
+import "server-only";
 
 import { prisma } from "@/db";
 import { getCurrentUser } from "@/server/session";
+
+export { getCurrentUser };
 
 export async function onAuthenticateUser() {
   const user = await getCurrentUser();
   return { status: user ? 200 : 403, user };
 }
 
-export async function searchMentionUsers(query: string) {
-  try {
-    const cleanQuery = query.replace(/^@/, "").trim();
-    const users = await prisma.user.findMany({
-      where: cleanQuery
-        ? {
-            OR: [
-              { username: { contains: cleanQuery, mode: "insensitive" } },
-              { name: { contains: cleanQuery, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
-      take: 6,
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        photo: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-    return { status: 200, users };
-  } catch (error) {
-    console.error("searchMentionUsers error:", error);
-    return { status: 500, users: [] };
-  }
-}
 
-export async function getUserProfile(username: string) {
+export async function getUserProfile(username: string, currentUserId: string | null) {
   try {
-    const { user: currentUserAuth } = await onAuthenticateUser();
 
     const targetUser = await prisma.user.findUnique({
       where: { username },
@@ -88,11 +60,11 @@ export async function getUserProfile(username: string) {
 
     // Check if current logged-in user is following this user
     let isFollowing = false;
-    if (currentUserAuth && currentUserAuth.id !== targetUser.id) {
+    if (currentUserId && currentUserId !== targetUser.id) {
       const followRecord = await prisma.follow.findUnique({
         where: {
           followerId_followingId: {
-            followerId: currentUserAuth.id,
+            followerId: currentUserId,
             followingId: targetUser.id,
           },
         },
@@ -100,7 +72,7 @@ export async function getUserProfile(username: string) {
       isFollowing = !!followRecord;
     }
 
-    const isOwnProfile = currentUserAuth?.id === targetUser.id;
+    const isOwnProfile = currentUserId === targetUser.id;
 
     return {
       status: 200,
@@ -307,12 +279,9 @@ export async function getUserPosts(
   }
 }
 
-export async function getSuggestedUsers(limit = 4) {
-  try {
-    const { user: currentUserAuth } = await onAuthenticateUser();
-
+export async function getSuggestedUsers(currentUserId: string | null, limit = 4) {
     const users = await prisma.user.findMany({
-      where: currentUserAuth ? { id: { not: currentUserAuth.id } } : undefined,
+      where: currentUserId ? { id: { not: currentUserId } } : undefined,
       take: limit,
       orderBy: [
         { followers: { _count: "desc" } },
@@ -327,24 +296,14 @@ export async function getSuggestedUsers(limit = 4) {
       },
     });
 
-    let followingIds = new Set<string>();
-    if (currentUserAuth) {
-      const follows = await prisma.follow.findMany({
-        where: { followerId: currentUserAuth.id },
-        select: { followingId: true },
-      });
-      followingIds = new Set(follows.map((f) => f.followingId));
-    }
-
-    return {
-      status: 200,
-      users: users.map((u) => ({
-        ...u,
-        isFollowing: followingIds.has(u.id),
-      })),
-    };
-  } catch (error) {
-    console.error("getSuggestedUsers error:", error);
-    return { status: 500, users: [] };
+  let followingIds = new Set<string>();
+  if (currentUserId) {
+    const follows = await prisma.follow.findMany({
+      where: { followerId: currentUserId },
+      select: { followingId: true },
+    });
+    followingIds = new Set(follows.map((f) => f.followingId));
   }
+
+  return users.map((u) => ({ ...u, isFollowing: followingIds.has(u.id) }));
 }

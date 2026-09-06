@@ -1,4 +1,6 @@
-import { onAuthenticateUser } from "@/server/data/user";
+import { getCurrentUser, getSuggestedUsers } from "@/server/data/user";
+import { getTrendingTopics } from "@/server/data/explore";
+import { getUnreadNotificationCount } from "@/server/data/notification";
 import AppSidebar from "@/components/features/shell/app-sidebar";
 import AppRightRail from "@/components/features/shell/app-right-rail";
 import Link from "next/link";
@@ -12,12 +14,17 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const auth = await onAuthenticateUser();
-  const user = auth.user;
+  const user = await getCurrentUser();
+  if (!user) redirect("/sign-in");
 
-  if (!user) {
-    redirect("/sign-in");
-  }
+  // The shell's data is fetched here, once, on the server. Previously the
+  // sidebar and the rail each fetched their own on mount, so every navigation
+  // showed empty rails and fired three extra round-trips.
+  const [unreadCount, suggestedUsers, trendingTopics] = await Promise.all([
+    getUnreadNotificationCount(user.id),
+    getSuggestedUsers(user.id, 4),
+    getTrendingTopics(4),
+  ]);
 
   return (
     // `overflow-clip` rather than `overflow-hidden`: hidden still creates a
@@ -48,7 +55,7 @@ export default async function ProtectedLayout({
       </header>
 
       {/* Section 1 (Kiri): Persistent Left Sidebar (Fixed / Non-scrolling) */}
-      <AppSidebar user={user} />
+      <AppSidebar user={user} unreadCount={unreadCount} />
 
       {/* Section 2 (Tengah): Central Content Canvas (THE ONLY SCROLLABLE COLUMN) */}
       <main className="flex-1 w-full max-w-2xl h-screen max-h-screen overflow-y-auto subtle-scrollbar flex flex-col border-r border-border/60 bg-background/40">
@@ -56,7 +63,7 @@ export default async function ProtectedLayout({
       </main>
 
       {/* Section 3 (Kanan): Right Rail */}
-      <AppRightRail />
+      <AppRightRail suggestedUsers={suggestedUsers} trendingTopics={trendingTopics} />
 
       {/* Progressive bottom blur removed as requested */}
     </div>

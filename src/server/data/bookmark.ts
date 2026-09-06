@@ -5,26 +5,21 @@
  * these directly in-process, so there is no POST round-trip and Next.js can
  * cache and stream them. Only mutations belong in server/actions.
  */
-"use server";
+import "server-only";
 
 import { prisma } from "@/db";
-import { onAuthenticateUser } from "@/server/data/user";
 
-export async function getUserBookmarks(skip = 0, take = 20) {
-  try {
-    const { user } = await onAuthenticateUser();
-
-    if (!user) {
-      return {
-        status: 401,
-        message: "You're not authenticated!",
-        posts: [],
-      };
-    }
-
+/**
+ * Bookmarked posts for one user, newest first.
+ *
+ * The caller passes the id rather than the function resolving the session, so
+ * this stays a pure query - easy to reason about, and callable from anywhere
+ * that already knows who is asking.
+ */
+export async function getUserBookmarks(userId: string, skip = 0, take = 20) {
     const bookmarks = await prisma.bookmark.findMany({
       where: {
-        userId: user.id,
+        userId,
       },
       skip,
       take,
@@ -67,18 +62,5 @@ export async function getUserBookmarks(skip = 0, take = 20) {
       },
     });
 
-    const posts = bookmarks.map((b) => b.post);
-
-    return {
-      status: 200,
-      posts,
-    };
-  } catch (error) {
-    console.error("getUserBookmarks error:", error);
-    return {
-      status: 500,
-      message: "Internal Server Error",
-      posts: [],
-    };
-  }
+  return bookmarks.map((b) => b.post);
 }

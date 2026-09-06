@@ -5,7 +5,7 @@
  * these directly in-process, so there is no POST round-trip and Next.js can
  * cache and stream them. Only mutations belong in server/actions.
  */
-"use server";
+import "server-only";
 
 import { prisma } from "@/db";
 

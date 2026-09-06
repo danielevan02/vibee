@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import ThemeButton from "@/components/features/shell/theme-button";
 import { Button } from "@/components/ui/button";
-import { getUnreadNotificationCount } from "@/server/data/notification";
 
 interface AppSidebarProps {
   user?: {
@@ -27,31 +26,15 @@ interface AppSidebarProps {
     photo: string | null;
   } | null;
   onOpenCompose?: () => void;
+  /** Resolved on the server by the layout, so the badge is correct in the
+   *  first paint instead of appearing a moment later. */
+  unreadCount?: number;
 }
 
-export default function AppSidebar({ user, onOpenCompose }: AppSidebarProps) {
+export default function AppSidebar({ user, onOpenCompose, unreadCount = 0 }: AppSidebarProps) {
   const pathname = usePathname();
   const { theme } = useTheme();
   const mounted = useHydrated();
-  const [unreadCount, setUnreadCount] = useState<number>(0);
-
-  useEffect(() => {
-    let isCancelled = false;
-    getUnreadNotificationCount()
-      .then((count) => {
-        if (!isCancelled) {
-          setUnreadCount(count);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load unread notifications count:", err);
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [pathname]);
-
   const profileHref = user?.username ? `/profile/${user.username}` : "/profile";
   const isProfileActive = pathname.startsWith("/profile");
 

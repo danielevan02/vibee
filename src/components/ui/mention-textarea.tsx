@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import Image from "next/image";
 import { CheckCircle2, AtSign } from "lucide-react";
-import { searchMentionUsers } from "@/server/data/user";
+import { searchMentionUsers } from "@/server/actions/user";
 
 export interface MentionUser {
   id: string;

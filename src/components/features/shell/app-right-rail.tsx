@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Search, CheckCircle2, ArrowRight, UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getSuggestedUsers } from "@/server/data/user";
 import { toggleFollowUser } from "@/server/actions/user";
-import { getTrendingTopics } from "@/server/data/explore";
 import { toast } from "sonner";
 import { ACTION_ERROR_MESSAGE } from "@/types/action";
 
@@ -26,42 +24,22 @@ interface RealTrendingTopic {
   posts: string;
 }
 
-export default function AppRightRail() {
+interface AppRightRailProps {
+  /** Both lists are resolved on the server by the layout, so the rail renders
+   *  complete on first paint rather than after a round-trip. */
+  suggestedUsers: RealSuggestedUser[];
+  trendingTopics: RealTrendingTopic[];
+}
+
+export default function AppRightRail({
+  suggestedUsers: initialSuggestedUsers,
+  trendingTopics,
+}: AppRightRailProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
-  const [suggestedUsers, setSuggestedUsers] = useState<RealSuggestedUser[]>([]);
-  const [trendingTopics, setTrendingTopics] = useState<RealTrendingTopic[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    async function loadRailData() {
-      try {
-        const [usersRes, topicsRes] = await Promise.all([
-          getSuggestedUsers(4),
-          getTrendingTopics(4),
-        ]);
-
-        if (isMounted) {
-          if (usersRes.status === 200 && usersRes.users) {
-            setSuggestedUsers(usersRes.users);
-          }
-          if (topicsRes.status === 200 && topicsRes.topics) {
-            setTrendingTopics(topicsRes.topics);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load right rail data:", err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-    loadRailData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // Local copy so the follow buttons stay optimistic.
+  const [suggestedUsers, setSuggestedUsers] = useState(initialSuggestedUsers);
 
   const handleFollowToggle = async (targetUser: RealSuggestedUser) => {
     try {
@@ -125,11 +103,7 @@ export default function AppRightRail() {
           )}
         </div>
 
-        {loading ? (
-          <div className="py-4 flex justify-center text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : trendingTopics.length > 0 ? (
+        {trendingTopics.length > 0 ? (
           <div className="space-y-2 text-xs">
             {trendingTopics.map((topic) => (
               <div
@@ -172,11 +146,7 @@ export default function AppRightRail() {
           </Link>
         </div>
 
-        {loading ? (
-          <div className="py-4 flex justify-center text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-          </div>
-        ) : suggestedUsers.length > 0 ? (
+        {suggestedUsers.length > 0 ? (
           <div className="space-y-3">
             {suggestedUsers.map((person) => (
               <div
