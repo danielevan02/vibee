@@ -5,7 +5,9 @@ import { updateProfileSchema, userIdSchema, type UpdateProfileInput } from "@/li
 import { getCurrentUser } from "@/server/session";
 import type { ActionResult } from "@/types/action";
 import type { User } from "@/db/schema";
-import { onAuthenticateUser } from "@/server/data/user";
+
+/** The slice of a user the mention autocomplete renders. */
+type MentionUser = Pick<User, "id" | "name" | "username" | "photo">;
 import { revalidatePath } from "next/cache";
 
 export async function updateUserProfile(
@@ -27,6 +29,13 @@ export async function updateUserProfile(
         bio: data.bio !== undefined ? data.bio.trim() : user.bio,
         website: data.website !== undefined ? data.website.trim() : user.website,
         location: data.location !== undefined ? data.location.trim() : user.location,
+        // Spread rather than a ternary: the images have to distinguish "not
+        // touched" from "cleared", and only an absent key means the former.
+        // `image` is Better Auth's own avatar field - keeping it in step means
+        // the session-driven chrome (sidebar, user menu) follows along instead
+        // of holding the old picture.
+        ...(data.photo !== undefined ? { photo: data.photo, image: data.photo } : {}),
+        ...(data.coverImage !== undefined ? { coverImage: data.coverImage } : {}),
       },
     });
 
@@ -47,10 +56,8 @@ export async function toggleFollowUser(
   if (!parsedTarget.success) return { ok: false, error: "validation" };
 
   try {
-    const { user } = await onAuthenticateUser();
-    if (!user) {
-      return { ok: false, error: "unauthorized" };
-    }
+    const user = await getCurrentUser();
+    if (!user) return { ok: false, error: "unauthorized" };
 
     if (user.id === targetUserId) {
       return { ok: false, error: "validation" };
@@ -131,7 +138,9 @@ export async function toggleFollowUser(
  * so it is exposed as an action rather than pulling the data layer into the
  * browser bundle.
  */
-export async function searchMentionUsers(query: string) {
+export async function searchMentionUsers(
+  query: string,
+): Promise<ActionResult<MentionUser[]>> {
   try {
     const cleanQuery = query.replace(/^@/, "").trim();
     const users = await prisma.user.findMany({
@@ -154,9 +163,9 @@ export async function searchMentionUsers(query: string) {
         createdAt: "desc",
       },
     });
-    return { status: 200, users };
+    return { ok: true, data: users };
   } catch (error) {
-    console.error("searchMentionUsers error:", error);
-    return { status: 500, users: [] };
+    console.error("searchMentionUsers:", error);
+    return { ok: false, error: "unknown" };
   }
 }

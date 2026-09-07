@@ -1,42 +1,37 @@
-"use client";
+import BrandLogo from "@/components/features/shell/brand-logo";
 
-import { useTheme } from "next-themes";
-import { useHydrated } from "@/hooks/use-hydrated";
-import Image from "next/image";
-
+/**
+ * The root splash.
+ *
+ * This is now the cold-start screen only: navigating between signed-in pages
+ * resolves at `(protectedRoutes)/loading.tsx`, which keeps the sidebar and rails
+ * on screen instead of replacing the whole app with a logo.
+ *
+ * A Server Component - no theme hook, no hydration guard, so it paints with the
+ * first byte rather than after JavaScript arrives.
+ */
 export default function LoadingPage() {
-  const { theme } = useTheme();
-  const mounted = useHydrated();
-
   return (
-    <div className="relative flex flex-col items-center justify-center gap-2 w-screen h-screen">
-      <div className="w-10 aspect-square">
-        {mounted ? (
-          <Image
-            src={theme === "light" ? "/black-logo.png" : "/white-logo.png"}
-            width={300}
-            height={300}
-            alt="VIBEE Logo"
-            className="w-full h-full"
-          />
-        ) : (
-          <Image
-            src="/black-logo.png"
-            width={300}
-            height={300}
-            alt="VIBEE Logo"
-            className="w-full h-full"
-          />
-        )}
+    <div className="relative min-h-dvh w-full bg-background flex flex-col items-center justify-center gap-3 px-6">
+      <div className="animate-pulse">
+        <BrandLogo size={40} priority />
       </div>
-      <p className="font-serif font-normal text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent">
-        VIBEE
-      </p>
 
-      <div className="absolute bottom-20 md:bottom-10 left-1/2 -translate-x-1/2 text-center">
-        <p className="text-neutral-500">Made by</p>
-        <p className="font-extrabold text-lg bg-gradient-to-br text-transparent from-blue-900 via-blue-400 to-blue-200 bg-clip-text">Daniel Evan</p>
+      <div className="flex flex-col items-center gap-1">
+        <p className="font-serif font-normal text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent">
+          VIBEE
+        </p>
+        {/* The same micro-label the sidebar wears, so the splash and the app
+            read as one product. */}
+        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+          <span className="w-1 h-1 rounded-full bg-foreground/40 animate-pulse" />
+          Sanctuary
+        </span>
       </div>
+
+      <p className="absolute bottom-10 text-[11px] text-muted-foreground/70 text-center">
+        Made by <span className="font-medium text-muted-foreground">Daniel Evan</span>
+      </p>
     </div>
   );
 }

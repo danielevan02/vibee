@@ -2,35 +2,49 @@
 
 import { useState, useCallback } from "react";
 import { User } from "@/db/schema";
-import { Flame, Clock } from "lucide-react";
+import { Flame, Clock, Users } from "lucide-react";
 import { motion } from "motion/react";
 import InputPost from "@/components/features/post/post-composer";
 import PostList from "@/components/features/post/post-list";
+import type { FeedKind } from "@/types/feed";
 import { cn } from "@/lib/utils";
 import { useSlidingPill } from "@/hooks/use-sliding-pill";
 
 interface HomeFeedStreamProps {
   user: User;
-  initialTab?: "chronological" | "trending";
+  initialFeed: FeedKind;
+  /** How many accounts the viewer follows, for the following tab's empty state. */
+  followingCount: number;
 }
+
+/** One row of choices rather than a scope switch crossed with a sort switch:
+ *  three timelines, each a single idea. */
+const FEEDS: { key: FeedKind; label: string; icon: typeof Clock }[] = [
+  { key: "following", label: "Following", icon: Users },
+  { key: "latest", label: "Latest", icon: Clock },
+  { key: "frequencies", label: "Frequencies", icon: Flame },
+];
+
+const FEED_SUBTITLE: Record<FeedKind, string> = {
+  following: "Vibes from the people you follow, newest first.",
+  latest: "Everything the community is sharing, as it arrives.",
+  frequencies: "The vibes resonating most across the community.",
+};
 
 export default function HomeFeedStream({
   user,
-  initialTab = "chronological",
+  initialFeed,
+  followingCount,
 }: HomeFeedStreamProps) {
-  const [activeSort, setActiveSort] = useState<"chronological" | "trending">(initialTab);
-  const { containerRef, setItemRef, rect, instant } = useSlidingPill(activeSort);
+  const [activeFeed, setActiveFeed] = useState<FeedKind>(initialFeed);
+  const { containerRef, setItemRef, rect, instant } = useSlidingPill(activeFeed);
 
-  const handleTabChange = useCallback((newSort: "chronological" | "trending") => {
-    setActiveSort(newSort);
+  const handleFeedChange = useCallback((nextFeed: FeedKind) => {
+    setActiveFeed(nextFeed);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
-      if (newSort === "trending") {
-        url.searchParams.set("tab", "trending");
-      } else {
-        url.searchParams.delete("tab");
-      }
-      window.history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
+      url.searchParams.set("tab", nextFeed);
+      window.history.replaceState(null, "", url.pathname + url.search);
     }
   }, []);
 
@@ -46,7 +60,7 @@ export default function HomeFeedStream({
             Home
           </h1>
           <p className="text-xs font-normal text-muted-foreground mt-1">
-            Catch up with the latest vibes and conversations.
+            {FEED_SUBTITLE[activeFeed]}
           </p>
         </div>
 
@@ -73,43 +87,26 @@ export default function HomeFeedStream({
             }
             className="absolute top-0 left-0 rounded-full bg-background border border-border/60 pointer-events-none"
           />
-          <button
-            type="button"
-            id="tab-chronological"
-            ref={setItemRef}
-            data-pill-key="chronological"
-            onClick={() => handleTabChange("chronological")}
-            className={cn(
-              "relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-colors duration-200 cursor-pointer select-none",
-              activeSort === "chronological"
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Chronological</span>
-          </button>
-          <button
-            type="button"
-            id="tab-trending"
-            ref={setItemRef}
-            data-pill-key="trending"
-            onClick={() => handleTabChange("trending")}
-            className={cn(
-              "relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-colors duration-200 cursor-pointer select-none",
-              activeSort === "trending"
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Flame
+          {FEEDS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              id={`tab-${key}`}
+              ref={setItemRef}
+              data-pill-key={key}
+              onClick={() => handleFeedChange(key)}
+              aria-pressed={activeFeed === key}
               className={cn(
-                "w-3.5 h-3.5",
-                activeSort === "trending" ? "text-foreground" : "text-muted-foreground"
+                "relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-colors duration-200 select-none",
+                activeFeed === key
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               )}
-            />
-            <span>Frequencies</span>
-          </button>
+            >
+              <Icon className="w-3.5 h-3.5" />
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -118,7 +115,14 @@ export default function HomeFeedStream({
 
       {/* Main Post Stream */}
       <div className="pt-2">
-        <PostList user={user} sort={activeSort} />
+        {/* Keyed by feed: a different timeline is a fresh list, not the same
+            list with its state hand-reset. */}
+        <PostList
+          key={activeFeed}
+          user={user}
+          feed={activeFeed}
+          followingCount={followingCount}
+        />
       </div>
     </div>
   );

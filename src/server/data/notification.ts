@@ -10,44 +10,44 @@ import "server-only";
 import { prisma } from "@/db";
 
 export async function getNotifications(userId: string, filterType?: string) {
-    const whereClause: {
-      recipientId: string;
-      type?: string;
-    } = {
-      recipientId: userId,
-    };
+  const whereClause: {
+    recipientId: string;
+    type?: string;
+  } = {
+    recipientId: userId,
+  };
 
-    if (filterType && filterType !== "all") {
-      if (filterType === "mentions") whereClause.type = "MENTION";
-      else if (filterType === "likes") whereClause.type = "LIKE";
-      else if (filterType === "comments") whereClause.type = "COMMENT";
-      else if (filterType === "follows") whereClause.type = "FOLLOW";
-    }
+  if (filterType && filterType !== "all") {
+    if (filterType === "mentions") whereClause.type = "MENTION";
+    else if (filterType === "likes") whereClause.type = "LIKE";
+    else if (filterType === "comments") whereClause.type = "COMMENT";
+    else if (filterType === "follows") whereClause.type = "FOLLOW";
+  }
 
-    const notifications = await prisma.notification.findMany({
-      where: whereClause,
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            photo: true,
-          },
-        },
-        post: {
-          select: {
-            id: true,
-            content: true,
-            imageUrl: true,
-          },
+  const notifications = await prisma.notification.findMany({
+    where: whereClause,
+    include: {
+      sender: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          photo: true,
         },
       },
-      orderBy: {
-        createdAt: "desc",
+      post: {
+        select: {
+          id: true,
+          content: true,
+          imageUrl: true,
+        },
       },
-      take: 50,
-    });
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 50,
+  });
 
   return notifications;
 }

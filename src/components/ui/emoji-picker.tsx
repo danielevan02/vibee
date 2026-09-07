@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Smile, Search, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { iconButton, toolbarButton } from "@/lib/ui";
 
 interface EmojiPickerProps {
   onSelectEmoji: (emoji: string) => void;
@@ -228,25 +229,18 @@ export default function EmojiPicker({
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Dynamically calculate placement based on viewport space
-  useEffect(() => {
-    if (!isOpen || !buttonRef.current) return;
-
-    if (placement !== "auto") {
-      setOpenDirection(placement);
-      return;
-    }
-
-    const rect = buttonRef.current.getBoundingClientRect();
-    const spaceAbove = rect.top;
-
-    // If close to top of viewport (< 360px), open downwards to avoid clipping
-    if (spaceAbove < 360) {
-      setOpenDirection("bottom");
-    } else {
-      setOpenDirection("top");
-    }
-  }, [isOpen, placement]);
+  /**
+   * Where the popover should unfold, measured at the moment of opening.
+   *
+   * The button is already on screen when it is clicked, so there is nothing to
+   * wait for - doing this in an effect only meant one frame in the wrong place.
+   */
+  const resolveDirection = (): "top" | "bottom" => {
+    if (placement !== "auto") return placement;
+    const rect = buttonRef.current?.getBoundingClientRect();
+    // Close to the top of the viewport, so unfolding upwards would clip.
+    return !rect || rect.top < 360 ? "bottom" : "top";
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -299,16 +293,18 @@ export default function EmojiPicker({
         ref={buttonRef}
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
-        className={
-          variant === "compact"
-            ? "p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center"
-            : "flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary p-2 rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50 cursor-pointer"
-        }
+        onClick={() => {
+          if (!isOpen) setOpenDirection(resolveDirection());
+          setIsOpen((prev) => !prev);
+        }}
+        className={cn(
+          variant === "compact" ? iconButton : toolbarButton,
+          variant === "compact" && "flex items-center justify-center",
+        )}
         title="Insert an emoji"
         aria-label="Insert an emoji"
       >
-        <Smile className="w-4 h-4 text-primary" />
+        <Smile className="w-4 h-4" strokeWidth={1.75} />
         {variant !== "compact" && (
           <span className="hidden sm:inline">{buttonLabel}</span>
         )}
@@ -354,7 +350,7 @@ export default function EmojiPicker({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className={iconButton}
                 aria-label="Close emoji picker"
               >
                 <X className="w-4 h-4" />
@@ -369,11 +365,10 @@ export default function EmojiPicker({
                     key={cat.name}
                     type="button"
                     onClick={() => setSelectedCategoryIndex(idx)}
-                    className={`px-2.5 py-1 text-sm rounded-lg transition-[color,background-color,border-color,opacity,transform] cursor-pointer ${
-                      selectedCategoryIndex === idx
-                        ? "bg-primary/15 scale-110"
-                        : "hover:bg-accent/60 opacity-60 hover:opacity-100"
-                    }`}
+                    className={cn(
+                      "px-2.5 py-1 text-sm rounded-lg transition-[color,background-color,border-color,opacity,transform]",
+                      selectedCategoryIndex === idx ? "bg-primary/15 scale-110" : "hover:bg-accent/60 opacity-60 hover:opacity-100",
+                    )}
                     title={cat.name}
                   >
                     {cat.icon}
@@ -390,7 +385,7 @@ export default function EmojiPicker({
                     key={`${item.emoji}-${idx}`}
                     type="button"
                     onClick={() => handleSelect(item.emoji)}
-                    className="w-8 h-8 rounded-lg text-lg flex items-center justify-center hover:bg-accent/70 hover:scale-125 active:scale-95 transition-transform cursor-pointer"
+                    className="w-8 h-8 rounded-lg text-lg flex items-center justify-center hover:bg-accent/70 hover:scale-125 active:scale-95 transition-transform"
                     title={item.keywords[0]}
                   >
                     {item.emoji}

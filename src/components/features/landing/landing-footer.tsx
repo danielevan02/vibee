@@ -1,42 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useHydrated } from "@/hooks/use-hydrated";
 import Image from "next/image";
-import { useTheme } from "next-themes";
 
 import { Heart } from "lucide-react";
+import BrandLogo from "@/components/features/shell/brand-logo";
 
 export default function LandingFooter() {
-  const { theme } = useTheme();
-  const mounted = useHydrated();
 
   return (
     <footer className="border-t border-border/60 bg-background pt-16 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-[1240px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-10 pb-12 border-b border-border/50">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-border/50">
           {/* Brand Column */}
           <div className="md:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 relative">
-                {mounted ? (
-                  <Image
-                    src={theme === "dark" ? "/white-logo.png" : "/black-logo.png"}
-                    alt="VIBEE"
-                    width={32}
-                    height={32}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <Image
-                    src="/black-logo.png"
-                    alt="VIBEE"
-                    width={32}
-                    height={32}
-                    className="w-full h-full object-contain"
-                  />
-                )}
-              </div>
+              <BrandLogo size={32} />
               <span className="font-serif font-normal text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent">
                 VIBEE
               </span>
@@ -71,11 +50,7 @@ export default function LandingFooter() {
                   Voices
                 </a>
               </li>
-              <li>
-                <Link href="/home" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">
-                  Browse as Guest
-                </Link>
-              </li>
+
             </ul>
           </div>
 
@@ -95,37 +70,10 @@ export default function LandingFooter() {
                   Join Vibee →
                 </Link>
               </li>
-              <li>
-                <Link href="/home" className="hover:text-blue-600 dark:hover:text-sky-400 transition-colors">
-                  Live Feed
-                </Link>
-              </li>
+
             </ul>
           </div>
 
-          {/* Column 3: Philosophy */}
-          <div className="space-y-3 text-sm">
-            <p className="font-medium text-foreground text-xs uppercase tracking-wider font-mono">
-              Philosophy
-            </p>
-            <ul className="space-y-2.5 text-muted-foreground text-xs sm:text-sm font-normal">
-              <li>
-                <span className="hover:text-foreground transition-colors cursor-pointer">
-                  Chronological Manifesto
-                </span>
-              </li>
-              <li>
-                <span className="hover:text-foreground transition-colors cursor-pointer">
-                  Privacy Policy
-                </span>
-              </li>
-              <li>
-                <span className="hover:text-foreground transition-colors cursor-pointer">
-                  Terms of Resonance
-                </span>
-              </li>
-            </ul>
-          </div>
         </div>
 
         {/* Bottom copyright bar */}

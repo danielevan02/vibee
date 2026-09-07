@@ -8,6 +8,7 @@
 import "server-only";
 
 import { prisma } from "@/db";
+import { attachFollowState, viewerPostInclude } from "@/server/data/post";
 
 /**
  * Bookmarked posts for one user, newest first.
@@ -17,50 +18,22 @@ import { prisma } from "@/db";
  * that already knows who is asking.
  */
 export async function getUserBookmarks(userId: string, skip = 0, take = 20) {
-    const bookmarks = await prisma.bookmark.findMany({
-      where: {
-        userId,
-      },
-      skip,
-      take,
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        post: {
-          include: {
-            author: true,
-            _count: {
-              select: {
-                likes: true,
-                comments: true,
-              },
-            },
-            likes: {
-              select: {
-                authorId: true,
-              },
-            },
-            bookmarks: {
-              select: {
-                userId: true,
-              },
-            },
-            comments: {
-              where: { parentId: null },
-              include: {
-                author: true,
-                replies: {
-                  include: { author: true },
-                  orderBy: { createdAt: "asc" },
-                },
-              },
-              orderBy: { createdAt: "desc" },
-            },
-          },
-        },
-      },
-    });
+  const bookmarks = await prisma.bookmark.findMany({
+    where: {
+      userId,
+    },
+    skip,
+    take,
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      post: { include: viewerPostInclude(userId) },
+    },
+  });
 
-  return bookmarks.map((b) => b.post);
+  return attachFollowState(
+    bookmarks.map((b) => b.post),
+    userId,
+  );
 }

@@ -26,20 +26,20 @@ export default async function UserProfilePage({
   // Both in one pass: the profile does not gate the content query.
   const [profileResult, content] = await Promise.all([
     getUserProfile(username, viewerId),
-    getUserPosts(username, tab),
+    getUserPosts(username, viewerId, tab),
   ]);
 
-  if (profileResult.status !== 200 || !profileResult.user) notFound();
+  if (!profileResult) notFound();
 
   return (
     <ProfileView
       key={`${username}|${tab}`}
       username={username}
-      initialProfile={profileResult.user as never}
-      initialIsFollowing={Boolean(profileResult.isFollowing)}
-      initialIsOwnProfile={Boolean(profileResult.isOwnProfile)}
-      initialPosts={(content.posts ?? []) as never}
-      initialReplies={(content.replies ?? []) as never}
+      initialProfile={profileResult.profile as never}
+      initialIsFollowing={profileResult.isFollowing}
+      initialIsOwnProfile={profileResult.isOwnProfile}
+      initialPosts={content.posts as never}
+      initialReplies={content.replies as never}
       tab={tab}
     />
   );

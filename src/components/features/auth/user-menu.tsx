@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { User, Bookmark, LogOut, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { menuItem } from "@/lib/ui";
 
 interface UserMenuProps {
   user?: {
@@ -26,6 +29,7 @@ export default function UserMenu({
   side = "auto",
 }: UserMenuProps) {
   const { data: session } = authClient.useSession();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [openUpwards, setOpenUpwards] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -84,7 +88,10 @@ export default function UserMenu({
       setLoggingOut(true);
       await authClient.signOut();
       toast.success("Signed out successfully");
-      window.location.href = "/sign-in";
+      // Same reasoning as sign-in: refresh clears the cached, still-signed-in
+      // render rather than reloading the document.
+      router.push("/sign-in");
+      router.refresh();
     } catch (error) {
       console.error("Sign out error:", error);
       toast.error("Failed to sign out. Please try again.");
@@ -125,9 +132,10 @@ export default function UserMenu({
 
         {!compact && (
           <ChevronDown
-            className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${
-              isOpen ? "rotate-180" : ""
-            }`}
+            className={cn(
+              "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200",
+              isOpen ? "rotate-180" : "",
+            )}
           />
         )}
       </button>
@@ -135,9 +143,11 @@ export default function UserMenu({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute right-0 ${
-            openUpwards ? "bottom-full mb-2.5" : "top-full mt-2.5"
-          } w-60 rounded-2xl bg-popover dark:bg-card text-popover-foreground border border-border ring-1 ring-black/5 dark:ring-white/10 p-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150`}
+          className={cn(
+            "absolute right-0",
+            openUpwards ? "bottom-full mb-2.5" : "top-full mt-2.5",
+            "w-60 rounded-2xl bg-popover dark:bg-card text-popover-foreground border border-border ring-1 ring-black/5 dark:ring-white/10 p-2 z-50 animate-in fade-in-50 zoom-in-95 duration-150",
+          )}
         >
           {/* User Details Header */}
           <div className="px-3 py-2.5 rounded-xl bg-accent/40 mb-1 border border-border/30">
@@ -172,18 +182,18 @@ export default function UserMenu({
             <Link
               href={`/profile/${currentUser.username}`}
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+              className={menuItem}
             >
-              <User className="w-4 h-4 text-primary" />
+              <User className="w-4 h-4" />
               <span>Your Profile</span>
             </Link>
 
             <Link
               href="/bookmarks"
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+              className={menuItem}
             >
-              <Bookmark className="w-4 h-4 text-primary" />
+              <Bookmark className="w-4 h-4" />
               <span>Saved Bookmarks</span>
             </Link>
           </div>
@@ -195,7 +205,10 @@ export default function UserMenu({
           <button
             onClick={handleSignOut}
             disabled={loggingOut}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 dark:hover:bg-rose-500/15 transition-colors disabled:opacity-50"
+            className={cn(
+              menuItem,
+              "text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 dark:hover:bg-rose-500/15 disabled:opacity-50",
+            )}
           >
             <LogOut className="w-4 h-4" />
             <span>{loggingOut ? "Signing out..." : "Sign Out"}</span>

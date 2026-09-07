@@ -1,18 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useRef, useCallback } from "react";
 import PostCard, { PostCardProps } from "@/components/features/post/post-card";
 import PostSkeleton from "@/components/features/post/post-skeleton";
-import { Loader2, MessageSquareDashed, Flame } from "lucide-react";
+import { Loader2, MessageSquareDashed, Flame, Users, Compass } from "lucide-react";
 import { User } from "@/db/schema";
 import { usePost } from "@/lib/stores";
+import type { FeedKind } from "@/types/feed";
 
 export default function PostList({
   user,
-  sort = "chronological",
+  feed = "latest",
+  followingCount = 0,
 }: {
   user: User;
-  sort?: "chronological" | "trending";
+  feed?: FeedKind;
+  /** Lets the empty state tell "you follow nobody" apart from "they are quiet". */
+  followingCount?: number;
 }) {
   const { posts, setPosts } = usePost();
   const [loading, setLoading] = useState(false);
@@ -23,7 +28,7 @@ export default function PostList({
 
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
-  const currentSortRef = useRef(sort);
+  const currentFeedRef = useRef(feed);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -34,20 +39,20 @@ export default function PostList({
   }, [hasMore]);
 
   useEffect(() => {
-    currentSortRef.current = sort;
-  }, [sort]);
+    currentFeedRef.current = feed;
+  }, [feed]);
 
   const fetchPosts = useCallback(
-    async (currentSkip: number, activeSort: "chronological" | "trending") => {
+    async (currentSkip: number, activeFeed: FeedKind) => {
       if (loadingRef.current || (!hasMoreRef.current && currentSkip > 0)) return;
 
       setLoading(true);
       try {
-        const res = await fetch(`/api/post?skip=${currentSkip}&sort=${activeSort}`);
+        const res = await fetch(`/api/post?skip=${currentSkip}&feed=${activeFeed}`);
         if (!res.ok) throw new Error("Failed to load posts");
 
         // Stale response guard
-        if (activeSort !== currentSortRef.current) return;
+        if (activeFeed !== currentFeedRef.current) return;
 
         const newPosts = (await res.json()) as PostCardProps["post"][];
 
@@ -67,7 +72,7 @@ export default function PostList({
       } catch (err) {
         console.error("Error fetching posts:", err);
       } finally {
-        if (activeSort === currentSortRef.current) {
+        if (activeFeed === currentFeedRef.current) {
           setLoading(false);
           setInitialLoading(false);
         }
@@ -76,13 +81,12 @@ export default function PostList({
     [setPosts]
   );
 
-  // Fetch when sort changes or on initial mount
+  // Fetch the first page on mount. Switching feeds remounts this component -
+  // the parent keys it by feed - so there are no three pieces of state to reset
+  // by hand, which is React's own answer to "start over when a prop changes".
   useEffect(() => {
-    hasMoreRef.current = true;
-    setHasMore(true);
-    setInitialLoading(true);
-    fetchPosts(0, sort);
-  }, [sort, fetchPosts]);
+    fetchPosts(0, feed);
+  }, [feed, fetchPosts]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -95,7 +99,7 @@ export default function PostList({
         hasMoreRef.current &&
         !initialLoading
       ) {
-        fetchPosts(posts.length, sort);
+        fetchPosts(posts.length, feed);
       }
     });
 
@@ -104,7 +108,7 @@ export default function PostList({
     }
 
     return () => observer.current?.disconnect();
-  }, [fetchPosts, posts.length, initialLoading, sort]);
+  }, [fetchPosts, posts.length, initialLoading, feed]);
 
   // If initially loading and no posts yet, display S-Tier skeleton cards
   if (initialLoading) {
@@ -117,25 +121,50 @@ export default function PostList({
     );
   }
 
-  // If no posts found
+  // If no posts found. The following feed has two very different silences -
+  // "you follow nobody" is a thing the reader can act on, so it gets its own
+  // copy and a way out rather than the generic "no vibes yet".
   if (posts.length === 0) {
+    const isEmptyGraph = feed === "following" && followingCount === 0;
+
     return (
       <div className="rounded-2xl border border-dashed border-border/70 p-12 text-center bg-card/20 backdrop-blur-sm space-y-3">
         <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
-          {sort === "trending" ? (
+          {feed === "following" ? (
+            <Users className="w-6 h-6" />
+          ) : feed === "frequencies" ? (
             <Flame className="w-6 h-6 text-amber-500" />
           ) : (
             <MessageSquareDashed className="w-6 h-6" />
           )}
         </div>
         <h3 className="font-bold text-base text-foreground">
-          {sort === "trending" ? "No trending vibes yet" : "No vibes yet"}
+          {isEmptyGraph
+            ? "You're not following anyone yet"
+            : feed === "following"
+              ? "Quiet in here"
+              : feed === "frequencies"
+                ? "No trending vibes yet"
+                : "No vibes yet"}
         </h3>
         <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
-          {sort === "trending"
-            ? "Posts with the most likes and comments will be featured here. Be the first to start a conversation!"
-            : "The timeline is currently quiet. Be the first to share a thought, photo, or conversation!"}
+          {isEmptyGraph
+            ? "Follow a few voices and their vibes will land here. Until then, Latest shows you everything."
+            : feed === "following"
+              ? "The people you follow haven't shared anything yet. Share the first thought, or find more voices to follow."
+              : feed === "frequencies"
+                ? "Posts with the most likes and comments will be featured here. Be the first to start a conversation!"
+                : "The timeline is currently quiet. Be the first to share a thought, photo, or conversation!"}
         </p>
+        {feed === "following" && (
+          <Link
+            href="/explore?tab=people"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+          >
+            <Compass className="w-3.5 h-3.5" />
+            Find people to follow
+          </Link>
+        )}
       </div>
     );
   }

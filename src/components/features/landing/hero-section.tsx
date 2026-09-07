@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function HeroSection() {
   const [dummyText, setDummyText] = useState("");
@@ -196,11 +197,12 @@ export default function HeroSection() {
                             setHasLiked(!hasLiked);
                             setLikeCount((prev) => (hasLiked ? prev - 1 : prev + 1));
                           }}
-                          className={`flex items-center gap-1.5 transition-colors py-1 px-2 rounded-md hover:bg-muted ${
-                            hasLiked ? "text-rose-500 font-medium" : "hover:text-rose-500"
-                          }`}
+                          className={cn(
+                            "flex items-center gap-1.5 transition-colors py-1 px-2 rounded-md hover:bg-muted",
+                            hasLiked ? "text-rose-500 font-medium" : "hover:text-rose-500",
+                          )}
                         >
-                          <Heart className={`w-3.5 h-3.5 ${hasLiked ? "fill-rose-500 text-rose-500" : ""}`} />
+                          <Heart className={cn("w-3.5 h-3.5", hasLiked ? "fill-rose-500 text-rose-500" : "")} />
                           <span>{likeCount}</span>
                         </button>
                         <span className="flex items-center gap-1.5 py-1 px-2 rounded-md hover:bg-muted cursor-pointer transition-colors">

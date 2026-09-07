@@ -1,20 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useHydrated } from "@/hooks/use-hydrated";
-import Image from "next/image";
-import { useState, useEffect, type ReactNode } from "react";
-import { useTheme } from "next-themes";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import {
   motion,
   AnimatePresence,
   useScroll,
   useTransform,
-  useMotionValueEvent,
 } from "motion/react";
 import { ArrowRight, Menu, X } from "lucide-react";
 import ThemeButton from "@/components/features/shell/theme-button";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import BrandLogo from "@/components/features/shell/brand-logo";
 
 /**
  * Scroll-reactive shell around the minimalist editorial navbar.
@@ -22,38 +20,35 @@ import { Button } from "@/components/ui/button";
  * On scroll: smoothly morphs into a focused floating pill (max-w-4xl) with frosted glass.
  */
 function NavShell({ children, drawer }: { children: ReactNode; drawer: ReactNode }) {
-  const [scrolled, setScrolled] = useState(false);
+  // Reading the scroll position, rather than mirroring it into state. This also
+  // covers landing on an already-scrolled page, which previously needed a
+  // separate mount effect.
+  const scrolled = useSyncExternalStore(
+    subscribeToScroll,
+    () => window.scrollY > 25,
+    () => false,
+  );
 
   const { scrollY } = useScroll();
 
   // Smooth GPU-composited surface opacity
   const surfaceOpacity = useTransform(scrollY, [10, 50], [0, 1], { clamp: true });
 
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    if (latest > 25 && !scrolled) {
-      setScrolled(true);
-    } else if (latest <= 25 && scrolled) {
-      setScrolled(false);
-    }
-  });
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.scrollY > 25) {
-      setScrolled(true);
-    }
-  }, []);
 
   return (
     <div
-      className={`mx-auto transition-[max-width,padding] duration-500 ease-out px-4 sm:px-6 pointer-events-auto ${
-        scrolled ? "max-w-4xl pt-3 sm:pt-4" : "max-w-[1240px] pt-4 sm:pt-6"
-      }`}
+      className={cn(
+        "mx-auto transition-[max-width,padding] duration-500 ease-out px-4 sm:px-6 pointer-events-auto",
+        scrolled ? "max-w-4xl pt-3 sm:pt-4" : "max-w-[1240px] pt-4 sm:pt-6",
+      )}
     >
       {/* Floating Bar Container */}
       <div
-        className={`relative flex items-center justify-between rounded-full transition-[height,padding] duration-500 ease-out ${
-          scrolled ? "h-14 sm:h-16 px-4 sm:px-6" : "h-16 sm:h-20 px-2 sm:px-4"
-        }`}
+        className={cn(
+          "relative flex items-center justify-between rounded-full transition-[height,padding] duration-500 ease-out",
+          scrolled ? "h-14 sm:h-16 px-4 sm:px-6" : "h-16 sm:h-20 px-2 sm:px-4",
+        )}
       >
         {/* Frosted Glass Surface Layer on Scroll */}
         <motion.div
@@ -82,9 +77,13 @@ function NavShell({ children, drawer }: { children: ReactNode; drawer: ReactNode
   );
 }
 
+/** Shared across every mount of the navbar; React handles the bookkeeping. */
+function subscribeToScroll(onChange: () => void) {
+  window.addEventListener("scroll", onChange, { passive: true });
+  return () => window.removeEventListener("scroll", onChange);
+}
+
 export default function LandingNavbar() {
-  const { theme } = useTheme();
-  const mounted = useHydrated();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [entered, setEntered] = useState(false);
 
@@ -191,25 +190,7 @@ export default function LandingNavbar() {
             transition={{ duration: 0.25 }}
             className="relative w-8 h-8 sm:w-8 sm:h-8 flex items-center justify-center shrink-0"
           >
-            {mounted ? (
-              <Image
-                src={theme === "dark" ? "/white-logo.png" : "/black-logo.png"}
-                alt="VIBEE"
-                width={32}
-                height={32}
-                className="w-full h-full object-contain"
-                priority
-              />
-            ) : (
-              <Image
-                src="/black-logo.png"
-                alt="VIBEE"
-                width={32}
-                height={32}
-                className="w-full h-full object-contain"
-                priority
-              />
-            )}
+            <BrandLogo size={32} priority />
           </motion.div>
 
           <span className="font-serif font-normal text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent group-hover:opacity-90 transition-opacity">

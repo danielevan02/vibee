@@ -9,7 +9,11 @@ export interface ExplorePost {
   id: string;
   content: string | null;
   imageUrl: string | null;
+  imageUrls: string[];
   createdAt: Date;
+  authorId: string;
+  /** True when the viewer follows this post's author. */
+  viewerFollowsAuthor: boolean;
   author: {
     id: string;
     name: string;
@@ -31,8 +35,13 @@ export interface ExplorePost {
       photo: string | null;
     };
   }[];
+  /** Scoped to the viewer: one entry means "I liked this", none means I did not. */
   likes: {
     authorId: string;
+  }[];
+  /** Scoped to the viewer, same as `likes`. */
+  bookmarks: {
+    userId: string;
   }[];
 }
 

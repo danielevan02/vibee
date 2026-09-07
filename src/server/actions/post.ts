@@ -3,16 +3,35 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/db";
-import { createPostSchema, postIdSchema, type CreatePostInput } from "@/lib/validations/post";
+import {
+  createPostSchema,
+  postIdSchema,
+  updatePostSchema,
+  type CreatePostInput,
+  type UpdatePostInput,
+} from "@/lib/validations/post";
 import { getCurrentUserId } from "@/server/session";
 import type { ActionResult } from "@/types/action";
+import type { Comment, Post, User } from "@/db/schema";
 
-export async function createPost(input: CreatePostInput) {
+/** What `createPost` hands back: the new post shaped like a feed row, so the
+ *  client can prepend it without a refetch. */
+type CreatedPost = Post & {
+  author: User;
+  _count: { comments: number; likes: number };
+  comments: (Comment & { author: User; replies: (Comment & { author: User })[] })[];
+  likes: { authorId: string }[];
+  bookmarks: { userId: string }[];
+};
+
+export async function createPost(
+  input: CreatePostInput,
+): Promise<ActionResult<CreatedPost>> {
   const userId = await getCurrentUserId();
-  if (!userId) return { ok: false as const, error: "unauthorized" as const };
+  if (!userId) return { ok: false, error: "unauthorized" };
 
   const parsed = createPostSchema.safeParse(input);
-  if (!parsed.success) return { ok: false as const, error: "validation" as const };
+  if (!parsed.success) return { ok: false, error: "validation" };
   const { content, imageUrl, imageUrls } = parsed.data;
 
   try {
@@ -103,10 +122,46 @@ export async function createPost(input: CreatePostInput) {
     }
 
     revalidatePath("/home");
-    return { ok: true as const, data: post };
+    return { ok: true, data: post };
   } catch (error) {
     console.error("createPost:", error);
-    return { ok: false as const, error: "unknown" as const };
+    return { ok: false, error: "unknown" };
+  }
+}
+
+export async function updatePost(
+  input: UpdatePostInput,
+): Promise<ActionResult<{ content: string; updatedAt: Date }>> {
+  const userId = await getCurrentUserId();
+  if (!userId) return { ok: false, error: "unauthorized" };
+
+  const parsed = updatePostSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "validation" };
+  const { postId, content } = parsed.data;
+
+  try {
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true },
+    });
+
+    if (!post) return { ok: false, error: "not_found" };
+    // Ownership is decided here, not by whether the UI drew the button.
+    if (post.authorId !== userId) return { ok: false, error: "forbidden" };
+
+    const updated = await prisma.post.update({
+      where: { id: postId },
+      data: { content },
+      select: { content: true, updatedAt: true },
+    });
+
+    revalidatePath("/home");
+    revalidatePath(`/post/${postId}`);
+
+    return { ok: true, data: { content: updated.content ?? "", updatedAt: updated.updatedAt } };
+  } catch (error) {
+    console.error("updatePost:", error);
+    return { ok: false, error: "unknown" };
   }
 }
 

@@ -1,7 +1,6 @@
 "use client";
 
-import { MessageCircle, Heart, Share2, Bookmark, CheckCircle2, Maximize2, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { MessageCircle, Heart, Share2, Bookmark, Maximize2, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -22,6 +21,10 @@ import CommentSection from "@/components/features/comment/comment-section";
 import MentionText from "@/components/ui/mention-text";
 import { authClient } from "@/lib/auth-client";
 import { usePost } from "@/lib/stores";
+import { cn } from "@/lib/utils";
+import { clockTime, fullDate, relativeTime } from "@/lib/date";
+import { PREVIEW_WORD_LIMIT } from "@/config/constants";
+import { actionButton, overlayButton, overlayChip, tapScale, tapSpring } from "@/lib/ui";
 import PostOptionsMenu from "./post-options-menu";
 
 export interface PostCardProps {
@@ -36,12 +39,16 @@ export interface PostCardProps {
       author: User;
       replies?: (Comment & { author: User })[];
     })[];
+    /** Scoped to the viewer by the data layer: non-empty means "I liked this". */
     likes: {
       authorId: string;
     }[];
+    /** Scoped to the viewer, same as `likes`. */
     bookmarks?: {
       userId: string;
     }[];
+    /** Whether the viewer follows this post's author. */
+    viewerFollowsAuthor?: boolean;
   };
   isLiked?: boolean;
   isBookmarked?: boolean;
@@ -53,7 +60,7 @@ export interface PostCardProps {
 
 export default function PostCard({
   post,
-  isLiked = false,
+  isLiked: initialIsLiked,
   isBookmarked: initialIsBookmarked,
   comments,
 }: PostCardProps) {
@@ -62,24 +69,21 @@ export default function PostCard({
   const [commentCount, setCommentCount] = useState(post._count.comments);
   const isAuthor = session?.user ? session.user.id === post.authorId : false;
 
-  let relativeTime = "";
-  try {
-    relativeTime = formatDistanceToNowStrict(new Date(post.createdAt), { addSuffix: true });
-  } catch {
-    relativeTime = format(new Date(post.createdAt), "MMM dd");
-  }
-
-  const time = format(new Date(post.createdAt), "hh:mm aa");
-  const date = format(new Date(post.createdAt), "MMM dd, yyyy");
+  const postedAgo = relativeTime(post.createdAt);
+  const time = clockTime(post.createdAt);
+  const date = fullDate(post.createdAt);
 
   const [like, setLike] = useState(post._count.likes);
-  const [active, setActive] = useState(isLiked);
+  // `likes` and `bookmarks` arrive scoped to the viewer, so their mere presence
+  // is the answer. The explicit props stay for callers that already know.
+  const [active, setActive] = useState(
+    initialIsLiked ?? (post.likes?.length ?? 0) > 0,
+  );
   const [isExpand, setIsExpand] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(() => {
-    if (initialIsBookmarked !== undefined) return initialIsBookmarked;
-    if (post.bookmarks && post.bookmarks.length > 0) return true;
-    return false;
-  });
+  const [content, setContent] = useState(post.content || "");
+  const [isBookmarked, setIsBookmarked] = useState(
+    initialIsBookmarked ?? (post.bookmarks?.length ?? 0) > 0,
+  );
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
 
@@ -92,8 +96,7 @@ export default function PostCard({
         ? [post.imageUrl]
         : [];
 
-  const content = post.content || "";
-  const wordLimit = 25;
+  const wordLimit = PREVIEW_WORD_LIMIT;
   const words = content.split(/\s+/);
   const showReadMore = words.length > wordLimit;
   const displayedContent =
@@ -152,7 +155,7 @@ export default function PostCard({
 
   const handleShare = () => {
     if (typeof window !== "undefined") {
-      navigator.clipboard.writeText(`${window.location.origin}/home#post-${post.id}`);
+      navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
       toast.success("Link copied to clipboard!");
     }
   };
@@ -186,7 +189,6 @@ export default function PostCard({
               >
                 {post.author.name}
               </Link>
-              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-500/20 shrink-0" />
               <Link
                 href={`/profile/${post.author.username}`}
                 className="text-xs text-muted-foreground hover:underline"
@@ -195,7 +197,7 @@ export default function PostCard({
               </Link>
               <span className="text-muted-foreground/60 text-xs">·</span>
               <span className="text-[11px] font-mono uppercase tracking-wide text-muted-foreground/80 hover:text-foreground transition-colors" title={`${date} at ${time}`}>
-                {relativeTime}
+                {postedAgo}
               </span>
             </div>
           </div>
@@ -206,7 +208,10 @@ export default function PostCard({
           authorId={post.author.id}
           authorUsername={post.author.username}
           isAuthor={isAuthor}
+          isFollowingAuthor={post.viewerFollowsAuthor ?? false}
           isBookmarked={isBookmarked}
+          content={content}
+          onEditPost={setContent}
           onToggleBookmark={handleToggleBookmark}
           onDeletePost={() => {
             setPosts((prev) => prev.filter((p) => p.id !== post.id));
@@ -221,7 +226,7 @@ export default function PostCard({
           {showReadMore && (
             <button
               onClick={() => setIsExpand(!isExpand)}
-              className="text-primary font-medium hover:underline ml-1 cursor-pointer inline"
+              className="text-primary font-medium hover:underline ml-1 inline"
             >
               {isExpand ? "Show less" : "Read more"}
             </button>
@@ -283,7 +288,10 @@ export default function PostCard({
                         prev > 0 ? prev - 1 : postImages.length - 1
                       );
                     }}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/85 text-white/90 hover:text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform,opacity] active:scale-95 cursor-pointer opacity-0 group-hover/img:opacity-100 sm:opacity-75 sm:hover:opacity-100"
+                    className={cn(
+                      overlayButton,
+                      "absolute left-2.5 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/img:opacity-100 sm:opacity-75 sm:hover:opacity-100",
+                    )}
                     aria-label="Previous photo"
                     title="Previous photo"
                   >
@@ -298,7 +306,10 @@ export default function PostCard({
                         prev < postImages.length - 1 ? prev + 1 : 0
                       );
                     }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/85 text-white/90 hover:text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform,opacity] active:scale-95 cursor-pointer opacity-0 group-hover/img:opacity-100 sm:opacity-75 sm:hover:opacity-100"
+                    className={cn(
+                      overlayButton,
+                      "absolute right-2.5 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/img:opacity-100 sm:opacity-75 sm:hover:opacity-100",
+                    )}
                     aria-label="Next photo"
                     title="Next photo"
                   >
@@ -306,7 +317,7 @@ export default function PostCard({
                   </button>
 
                   {/* Top Right: Counter Pill Badge */}
-                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/15 text-white text-[11px] font-mono flex items-center gap-1 z-10 pointer-events-none">
+                  <div className={cn(overlayChip, "absolute top-3 right-3 font-mono flex items-center gap-1 z-10 pointer-events-none")}>
                     <span>
                       {activeSlide + 1}/{postImages.length}
                     </span>
@@ -322,10 +333,10 @@ export default function PostCard({
                           e.stopPropagation();
                           setActiveSlide(idx);
                         }}
-                        className={`rounded-full transition-[width,background-color] duration-200 cursor-pointer ${idx === activeSlide
-                            ? "w-4 h-1.5 bg-white"
-                            : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
-                          }`}
+                        className={cn(
+                          "rounded-full transition-[width,background-color] duration-200",
+                          idx === activeSlide ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80",
+                        )}
                         aria-label={`Go to photo ${idx + 1}`}
                       />
                     ))}
@@ -334,7 +345,7 @@ export default function PostCard({
               )}
 
               {/* Floating expand pill */}
-              <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-white text-[11px] font-medium flex items-center gap-1.5 opacity-0 group-hover/img:opacity-100 transition-[transform,opacity] duration-200 transform translate-y-1 group-hover/img:translate-y-0 pointer-events-none">
+              <div className={cn(overlayChip, "absolute bottom-3 right-3 flex items-center gap-1.5 opacity-0 group-hover/img:opacity-100 transition-[transform,opacity] duration-200 translate-y-1 group-hover/img:translate-y-0 pointer-events-none")}>
                 <Maximize2 className="w-3 h-3 text-white/90" />
                 <span>View photo</span>
               </div>
@@ -356,32 +367,43 @@ export default function PostCard({
           </div>
         )}
 
-        {/* Action Bar (S-Tier Twitter/Linear style) */}
+        {/* Action Bar. The four controls share one anatomy from lib/ui - same
+            gap, same transition, same press spring - and differ only in the
+            colour each one settles on. */}
         <div className="flex mt-4 pt-3 border-t border-border/30 items-center justify-between text-muted-foreground text-xs">
           <div className="flex items-center gap-6">
             {/* Like Button */}
             <button
               onClick={handleLike}
-              className={`flex items-center gap-1.5 transition-colors group/like ${active ? "text-rose-500 font-medium" : "hover:text-rose-500"
-                }`}
+              className={cn(
+                actionButton,
+                active ? "text-rose-500 font-medium" : "hover:text-rose-500",
+              )}
               aria-label="Like post"
             >
-              <motion.div
-                whileTap={{ scale: 1.4 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+              <motion.span
+                className="flex"
+                whileTap={tapScale}
+                transition={tapSpring}
               >
                 <Heart
-                  className={`w-4 h-4 transition-colors ${active ? "fill-rose-500 text-rose-500" : "group-hover/like:text-rose-500"
-                    }`}
+                  className={cn("w-4 h-4", active && "fill-rose-500")}
+                  strokeWidth={1.75}
                 />
-              </motion.div>
+              </motion.span>
               <span>{like}</span>
             </button>
 
             {/* Comment Dialog Trigger */}
             <Dialog>
-              <DialogTrigger className="flex items-center gap-1.5 hover:text-foreground transition-colors duration-200 cursor-pointer group/comment">
-                <MessageCircle className="w-4 h-4" strokeWidth={1.75} />
+              <DialogTrigger className={cn(actionButton, "hover:text-foreground")}>
+                <motion.span
+                  className="flex"
+                  whileTap={tapScale}
+                  transition={tapSpring}
+                >
+                  <MessageCircle className="w-4 h-4" strokeWidth={1.75} />
+                </motion.span>
                 <span>{commentCount}</span>
               </DialogTrigger>
               <DialogContent
@@ -406,10 +428,16 @@ export default function PostCard({
             {/* Share Button */}
             <button
               onClick={handleShare}
-              className="flex items-center gap-1.5 hover:text-foreground transition-colors duration-200 cursor-pointer"
+              className={cn(actionButton, "hover:text-foreground")}
               aria-label="Share post"
             >
-              <Share2 className="w-4 h-4" />
+              <motion.span
+                className="flex"
+                whileTap={tapScale}
+                transition={tapSpring}
+              >
+                <Share2 className="w-4 h-4" strokeWidth={1.75} />
+              </motion.span>
               <span className="hidden sm:inline">Share</span>
             </button>
           </div>
@@ -418,14 +446,22 @@ export default function PostCard({
           <button
             type="button"
             onClick={handleToggleBookmark}
-            className={`p-1.5 rounded-lg hover:bg-accent/60 transition-colors cursor-pointer ${isBookmarked ? "text-amber-500" : "text-muted-foreground hover:text-foreground"
-              }`}
+            className={cn(
+              actionButton,
+              isBookmarked ? "text-amber-500" : "hover:text-amber-500",
+            )}
             aria-label={isBookmarked ? "Remove bookmark" : "Bookmark vibe"}
           >
-            <Bookmark
-              className={`w-4 h-4 transition-transform active:scale-125 ${isBookmarked ? "fill-amber-500 text-amber-500" : ""
-                }`}
-            />
+            <motion.span
+              className="flex"
+              whileTap={tapScale}
+              transition={tapSpring}
+            >
+              <Bookmark
+                className={cn("w-4 h-4", isBookmarked && "fill-amber-500")}
+                strokeWidth={1.75}
+              />
+            </motion.span>
           </button>
         </div>
       </div>

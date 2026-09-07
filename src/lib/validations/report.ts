@@ -16,4 +16,16 @@ export const createReportSchema = z.object({
   details: z.string().trim().max(1000).optional(),
 });
 
+/** Where a report can sit in the moderation queue. */
+export const REPORT_STATUSES = ["PENDING", "REVIEWED", "RESOLVED", "DISMISSED"] as const;
+
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+export const updateReportStatusSchema = z.object({
+  reportId: z.uuid(),
+  status: z.enum(REPORT_STATUSES),
+});
+
+export type UpdateReportStatusInput = z.input<typeof updateReportStatusSchema>;
+
 export type CreateReportInput = z.input<typeof createReportSchema>;

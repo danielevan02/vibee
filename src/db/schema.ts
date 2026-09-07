@@ -15,6 +15,7 @@ export type {
   PostModel as Post,
   CommentModel as Comment,
   LikeModel as Like,
+  CommentLikeModel as CommentLike,
   BookmarkModel as Bookmark,
   NotificationModel as Notification,
   ReportModel as Report,

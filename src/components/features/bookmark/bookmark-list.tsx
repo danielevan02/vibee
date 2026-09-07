@@ -74,10 +74,12 @@ export default function BookmarkList({ posts }: BookmarkListProps) {
           {posts.map((post) => {
             const comments = post.comments || [];
             return (
+              // `isLiked` is left to PostCard, which reads the viewer-scoped
+              // `likes` on the post itself. Hardcoding `false` here made every
+              // saved vibe look unliked.
               <PostCard
                 key={post.id}
                 post={post}
-                isLiked={false}
                 isBookmarked={true}
                 comments={comments}
               />

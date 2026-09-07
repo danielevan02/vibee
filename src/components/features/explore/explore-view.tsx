@@ -13,7 +13,6 @@ import {
   SearchX,
   Loader2,
   X,
-  CheckCircle2,
   UserPlus,
   UserCheck,
   Maximize2,
@@ -26,7 +25,9 @@ import ImageLightbox from "@/components/ui/image-lightbox";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ACTION_ERROR_MESSAGE } from "@/types/action";
-import { formatDistanceToNowStrict, format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { relativeTime } from "@/lib/date";
+import { iconButton } from "@/lib/ui";
 
 type TabType = "trending" | "latest" | "people" | "media";
 
@@ -168,7 +169,7 @@ export default function ExploreView({
             <button
               type="button"
               onClick={handleClearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
+              className={cn(iconButton, "absolute right-3 top-1/2 -translate-y-1/2")}
               title="Clear search"
             >
               <X className="w-3.5 h-3.5" />
@@ -186,10 +187,10 @@ export default function ExploreView({
                   key={topic.tag}
                   type="button"
                   onClick={() => handleTagClick(topic.tag)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${isSelected
-                      ? "bg-background text-foreground border border-border/60"
-                      : "bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-sky-400 border border-blue-400/20"
-                    }`}
+                  className={cn(
+                    "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
+                    isSelected ? "bg-background text-foreground border border-border/60" : "bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-sky-400 border border-blue-400/20",
+                  )}
                 >
                   <span>#{topic.tag}</span>
                   <span className="text-[10px] opacity-70 ml-1">({topic.posts})</span>
@@ -203,10 +204,10 @@ export default function ExploreView({
         <div className="flex items-center gap-1 border-t border-border/40 pt-2.5">
           <button
             onClick={() => handleTabChange("trending")}
-            className={`flex-1 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${activeTab === "trending"
-                ? "bg-background text-foreground border border-border/60"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-              }`}
+            className={cn(
+              "flex-1 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors",
+              activeTab === "trending" ? "bg-background text-foreground border border-border/60" : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+            )}
           >
             <TrendingUp className="w-3.5 h-3.5" />
             <span>Trending</span>
@@ -214,11 +215,10 @@ export default function ExploreView({
 
           <button
             onClick={() => handleTabChange("latest")}
-            className={`flex-1 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-              activeTab === "latest"
-                ? "bg-background text-foreground border border-border/60"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-            }`}
+            className={cn(
+              "flex-1 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors",
+              activeTab === "latest" ? "bg-background text-foreground border border-border/60" : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+            )}
           >
             <Radio className="w-3.5 h-3.5" />
             <span>Latest</span>
@@ -226,11 +226,10 @@ export default function ExploreView({
 
           <button
             onClick={() => handleTabChange("people")}
-            className={`flex-1 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-              activeTab === "people"
-                ? "bg-background text-foreground border border-border/60"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-            }`}
+            className={cn(
+              "flex-1 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors",
+              activeTab === "people" ? "bg-background text-foreground border border-border/60" : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+            )}
           >
             <Users className="w-3.5 h-3.5" />
             <span>People</span>
@@ -238,11 +237,10 @@ export default function ExploreView({
 
           <button
             onClick={() => handleTabChange("media")}
-            className={`flex-1 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-              activeTab === "media"
-                ? "bg-background text-foreground border border-border/60"
-                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-            }`}
+            className={cn(
+              "flex-1 py-1.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors",
+              activeTab === "media" ? "bg-background text-foreground border border-border/60" : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+            )}
           >
             <ImageIcon className="w-3.5 h-3.5" />
             <span>Media</span>
@@ -288,7 +286,6 @@ export default function ExploreView({
                             <span className="font-medium text-sm text-foreground truncate group-hover/person:underline">
                               {person.name}
                             </span>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-500/15 shrink-0" />
                           </div>
                           <p className="text-xs text-muted-foreground truncate">
                             @{person.username}
@@ -301,10 +298,10 @@ export default function ExploreView({
                           size="sm"
                           variant={person.isFollowing ? "outline" : "default"}
                           onClick={() => handleFollowToggle(person)}
-                          className={`rounded-full h-8 px-3 text-xs font-semibold cursor-pointer transition-colors ${person.isFollowing
-                              ? "border-border/70 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-                              : "bg-blue-600 hover:bg-blue-700 text-white"
-                            }`}
+                          className={cn(
+                            "rounded-full h-8 px-3 text-xs font-semibold transition-colors",
+                            person.isFollowing ? "border-border/70 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" : "bg-blue-600 hover:bg-blue-700 text-white",
+                          )}
                         >
                           {person.isFollowing ? (
                             <>
@@ -362,15 +359,6 @@ export default function ExploreView({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {posts.map((post) => {
                 if (!post.imageUrl) return null;
-                let postTime = "";
-                try {
-                  postTime = formatDistanceToNowStrict(new Date(post.createdAt), {
-                    addSuffix: true,
-                  });
-                } catch {
-                  postTime = format(new Date(post.createdAt), "MMM dd");
-                }
-
                 return (
                   <div
                     key={post.id}
@@ -383,7 +371,7 @@ export default function ExploreView({
                           username: post.author.username,
                           photo: post.author.photo || "/user-placeholder.png",
                         },
-                        time: postTime,
+                        time: relativeTime(post.createdAt),
                       })
                     }
                     className="group relative aspect-square rounded-2xl overflow-hidden border border-border/60 bg-muted/20 cursor-zoom-in hover:border-primary/40 transition-colors"
@@ -432,20 +420,15 @@ export default function ExploreView({
           /* Trending & Latest Post Streams */
           posts.length > 0 ? (
             <div className="space-y-4">
-              {posts.map((post) => {
-                const isLiked = post.likes.some(
-                  (l) => l.authorId === session?.user?.id
-                );
-
-                return (
-                  <PostCard
-                    key={post.id}
-                    post={post as unknown as React.ComponentProps<typeof PostCard>["post"]}
-                    isLiked={isLiked}
-                    comments={post.comments as unknown as React.ComponentProps<typeof PostCard>["comments"]}
-                  />
-                );
-              })}
+              {/* `likes` and `bookmarks` arrive scoped to the viewer, so
+                  PostCard reads its own initial state off the post. */}
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post as unknown as React.ComponentProps<typeof PostCard>["post"]}
+                  comments={post.comments as unknown as React.ComponentProps<typeof PostCard>["comments"]}
+                />
+              ))}
             </div>
           ) : (
             <div className="text-center py-20 px-4">

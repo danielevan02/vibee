@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Search, CheckCircle2, ArrowRight, UserPlus, UserCheck } from "lucide-react";
+import { Search, ArrowRight, UserPlus, UserCheck } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { toggleFollowUser } from "@/server/actions/user";
 import { toast } from "sonner";
 import { ACTION_ERROR_MESSAGE } from "@/types/action";
+import { cn } from "@/lib/utils";
 
 interface RealSuggestedUser {
   id: string;
@@ -172,7 +173,6 @@ export default function AppRightRail({
                       <p className="text-xs font-medium text-foreground truncate group-hover/p:underline">
                         {person.name}
                       </p>
-                      <CheckCircle2 className="w-3 h-3 text-blue-500 shrink-0" />
                     </div>
                     <p className="text-[11px] text-muted-foreground truncate">
                       @{person.username}
@@ -188,11 +188,10 @@ export default function AppRightRail({
                 <button
                   type="button"
                   onClick={() => handleFollowToggle(person)}
-                  className={`px-3.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors duration-200 cursor-pointer flex items-center gap-1 ${
-                    person.isFollowing
-                      ? "border border-border/80 bg-transparent text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-                      : "bg-foreground text-background hover:bg-foreground/90 border-0"
-                  }`}
+                  className={cn(
+                    "px-3.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors duration-200 flex items-center gap-1",
+                    person.isFollowing ? "border border-border/80 bg-transparent text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" : "bg-foreground text-background hover:bg-foreground/90 border-0",
+                  )}
                 >
                   {person.isFollowing ? (
                     <>

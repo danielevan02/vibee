@@ -27,3 +27,17 @@ export async function getCurrentUserId(): Promise<string | null> {
   const session = await auth.api.getSession({ headers: await headers() });
   return session?.user?.id ?? null;
 }
+
+/**
+ * The signed-in user, but only if they moderate.
+ *
+ * Returns null rather than throwing so callers keep the same shape as
+ * {@link getCurrentUser}: a page redirects, an action returns `forbidden`.
+ * There is deliberately no UI for granting this - the column is set directly in
+ * the database, which is the right amount of friction for the only role that
+ * can act on other people's posts.
+ */
+export async function requireAdmin(): Promise<User | null> {
+  const user = await getCurrentUser();
+  return user?.role === "ADMIN" ? user : null;
+}

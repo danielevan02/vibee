@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useHydrated } from "@/hooks/use-hydrated";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 import UserMenu from "@/components/features/auth/user-menu";
 import {
   Home,
@@ -13,9 +10,12 @@ import {
   User,
   Plus,
   Bookmark,
+  ShieldCheck,
 } from "lucide-react";
 import ThemeButton from "@/components/features/shell/theme-button";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import BrandLogo from "@/components/features/shell/brand-logo";
 
 interface AppSidebarProps {
   user?: {
@@ -23,6 +23,7 @@ interface AppSidebarProps {
     username: string | null;
     name: string | null;
     photo: string | null;
+    role?: string;
   } | null;
   onOpenCompose?: () => void;
   /** Resolved on the server by the layout, so the badge is correct in the
@@ -32,8 +33,6 @@ interface AppSidebarProps {
 
 export default function AppSidebar({ user, onOpenCompose, unreadCount = 0 }: AppSidebarProps) {
   const pathname = usePathname();
-  const { theme } = useTheme();
-  const mounted = useHydrated();
   const profileHref = user?.username ? `/profile/${user.username}` : "/profile";
   const isProfileActive = pathname.startsWith("/profile");
 
@@ -69,6 +68,17 @@ export default function AppSidebar({ user, onOpenCompose, unreadCount = 0 }: App
       icon: User,
       isActive: isProfileActive,
     },
+    // Only moderators have anywhere to go here, and only they can see it.
+    ...(user?.role === "ADMIN"
+      ? [
+          {
+            label: "Moderation",
+            href: "/admin/reports",
+            icon: ShieldCheck,
+            isActive: pathname.startsWith("/admin"),
+          },
+        ]
+      : []),
   ];
 
   const mobileNavItems = [
@@ -93,26 +103,8 @@ export default function AppSidebar({ user, onOpenCompose, unreadCount = 0 }: App
         <div className="space-y-6">
           {/* Logo & Brand Header */}
           <Link href="/" className="flex items-center gap-3 px-2 group">
-            <div className="w-8 h-8 relative transition-transform group-hover:scale-105">
-              {mounted ? (
-                <Image
-                  src={theme === "dark" ? "/white-logo.png" : "/black-logo.png"}
-                  alt="VIBEE"
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-contain"
-                  priority
-                />
-              ) : (
-                <Image
-                  src="/black-logo.png"
-                  alt="VIBEE"
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-contain"
-                  priority
-                />
-              )}
+            <div className="transition-transform group-hover:scale-105">
+              <BrandLogo size={32} priority />
             </div>
             <div className="flex flex-col">
               <span className="font-serif font-normal text-xl sm:text-2xl tracking-tight text-foreground">
@@ -133,11 +125,10 @@ export default function AppSidebar({ user, onOpenCompose, unreadCount = 0 }: App
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-full text-sm font-normal transition-colors duration-200 ${
-                    item.isActive
-                      ? "bg-foreground/5 text-foreground border border-border/60"
-                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03] border border-transparent"
-                  }`}
+                  className={cn(
+                    "flex items-center justify-between px-3.5 py-2.5 rounded-full text-sm font-normal transition-colors duration-200",
+                    item.isActive ? "bg-foreground/5 text-foreground border border-border/60" : "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.03] border border-transparent",
+                  )}
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
@@ -201,11 +192,10 @@ export default function AppSidebar({ user, onOpenCompose, unreadCount = 0 }: App
           // baseline whether the slot holds a bare icon or the filled circle.
           const glyph = (
             <span
-              className={`h-6 flex items-center justify-center ${
-                item.isAction
-                  ? "w-6 rounded-full bg-foreground text-background"
-                  : "w-6"
-              }`}
+              className={cn(
+                "h-6 flex items-center justify-center",
+                item.isAction ? "w-6 rounded-full bg-foreground text-background" : "w-6",
+              )}
             >
               <Icon
                 className={item.isAction ? "w-3.5 h-3.5" : "w-5 h-5"}
@@ -233,11 +223,10 @@ export default function AppSidebar({ user, onOpenCompose, unreadCount = 0 }: App
             <Link
               key={item.label}
               href={item.href!}
-              className={`relative flex-1 flex flex-col items-center gap-1 transition-colors duration-200 ${
-                item.isActive
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              className={cn(
+                "relative flex-1 flex flex-col items-center gap-1 transition-colors duration-200",
+                item.isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground",
+              )}
             >
               {glyph}
               <span className="text-[10px] font-medium">{item.label}</span>

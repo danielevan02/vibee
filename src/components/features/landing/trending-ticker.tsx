@@ -27,7 +27,7 @@ export default function TrendingTicker() {
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 mb-4 flex items-center justify-between text-xs tracking-wider uppercase text-sky-200/70">
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse shadow-[0_0_8px_#38bdf8]" />
-          <span className="font-semibold text-white">Community Frequencies Right Now</span>
+          <span className="font-semibold text-white">Frequencies You Will Find Inside</span>
         </div>
         <span className="hidden sm:inline font-mono text-[11px] text-sky-300/60">
           Unhurried • Unfiltered • Chronological

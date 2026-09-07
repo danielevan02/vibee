@@ -4,10 +4,10 @@ import { getUnreadNotificationCount } from "@/server/data/notification";
 import AppSidebar from "@/components/features/shell/app-sidebar";
 import AppRightRail from "@/components/features/shell/app-right-rail";
 import Link from "next/link";
-import Image from "next/image";
 import ThemeButton from "@/components/features/shell/theme-button";
 import UserMenu from "@/components/features/auth/user-menu";
 import { redirect } from "next/navigation";
+import BrandLogo from "@/components/features/shell/brand-logo";
 
 export default async function ProtectedLayout({
   children,
@@ -37,13 +37,7 @@ export default async function ProtectedLayout({
       {/* Mobile Top Header (Screens < md) */}
       <header className="md:hidden sticky top-0 z-30 h-16 border-b border-border/60 bg-background/85 dark:bg-card/85 backdrop-blur-xl px-4 flex items-center justify-between shrink-0">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image
-            src="/black-logo.png"
-            alt="VIBEE"
-            width={28}
-            height={28}
-            className="w-7 h-7 object-contain dark:invert"
-          />
+          <BrandLogo size={28} priority />
           <span className="font-serif font-normal text-xl sm:text-2xl tracking-tight text-foreground">
             VIBEE
           </span>

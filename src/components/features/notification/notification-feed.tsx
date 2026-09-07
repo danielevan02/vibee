@@ -11,19 +11,20 @@ import {
   MessageCircle,
   Heart,
   UserPlus,
-  CheckCircle2,
   CheckCheck,
   BellOff,
   Loader2,
   Trash2,
   ArrowRight,
 } from "lucide-react";
-import { formatDistanceToNowStrict, format } from "date-fns";
 import { markNotificationsAsRead, deleteNotification, markSingleNotificationAsRead } from "@/server/actions/notification";
 import MentionText from "@/components/ui/mention-text";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ACTION_ERROR_MESSAGE } from "@/types/action";
+import { cn } from "@/lib/utils";
+import { relativeTime } from "@/lib/date";
+import { iconButton } from "@/lib/ui";
 
 interface NotificationItem {
   id: string;
@@ -187,7 +188,7 @@ export default function NotificationFeed({
               size="sm"
               onClick={handleMarkAllRead}
               disabled={isPending}
-              className="rounded-full text-xs font-medium h-8 px-3.5 border-border/60 hover:bg-accent/60 flex items-center gap-1.5 cursor-pointer"
+              className="rounded-full text-xs font-medium h-8 px-3.5 border-border/60 hover:bg-accent/60 flex items-center gap-1.5"
             >
               <CheckCheck className="w-3.5 h-3.5 text-blue-500" />
               <span>Mark all read</span>
@@ -199,49 +200,49 @@ export default function NotificationFeed({
         <div className="flex items-center gap-1.5 mt-4 overflow-x-auto subtle-scrollbar pb-1">
           <button
             onClick={() => applyFilter("all")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer shrink-0 ${filter === "all"
-                ? "bg-background text-foreground border border-border/60"
-                : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-background/60"
-              }`}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0",
+              filter === "all" ? "bg-background text-foreground border border-border/60" : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-background/60",
+            )}
           >
             All
           </button>
           <button
             onClick={() => applyFilter("mentions")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${filter === "mentions"
-                ? "bg-background text-foreground border border-border/60"
-                : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-background/60"
-              }`}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 shrink-0",
+              filter === "mentions" ? "bg-background text-foreground border border-border/60" : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-background/60",
+            )}
           >
             <AtSign className="w-3.5 h-3.5" />
             Mentions
           </button>
           <button
             onClick={() => applyFilter("likes")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${filter === "likes"
-                ? "bg-rose-600 text-white"
-                : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/70"
-              }`}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0",
+              filter === "likes" ? "bg-rose-600 text-white" : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/70",
+            )}
           >
             <Heart className="w-3.5 h-3.5 fill-current" />
             Likes
           </button>
           <button
             onClick={() => applyFilter("comments")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${filter === "comments"
-                ? "bg-emerald-600 text-white"
-                : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/70"
-              }`}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0",
+              filter === "comments" ? "bg-emerald-600 text-white" : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/70",
+            )}
           >
             <MessageCircle className="w-3.5 h-3.5" />
             Replies
           </button>
           <button
             onClick={() => applyFilter("follows")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${filter === "follows"
-                ? "bg-purple-600 text-white"
-                : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/70"
-              }`}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0",
+              filter === "follows" ? "bg-purple-600 text-white" : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/70",
+            )}
           >
             <UserPlus className="w-3.5 h-3.5" />
             Followers
@@ -258,25 +259,18 @@ export default function NotificationFeed({
           </div>
         ) : notifications.length > 0 ? (
           notifications.map((notif) => {
-            let relativeTime = "";
-            try {
-              relativeTime = formatDistanceToNowStrict(new Date(notif.createdAt), {
-                addSuffix: true,
-              });
-            } catch {
-              relativeTime = format(new Date(notif.createdAt), "MMM dd");
-            }
-
             const targetHref = notif.postId
-              ? `/home#post-${notif.postId}`
+              ? `/post/${notif.postId}`
               : `/profile/${notif.sender.username}`;
 
             return (
               <div
                 key={notif.id}
                 onClick={() => handleItemClick(notif)}
-                className={`flex items-start justify-between gap-3.5 p-4 sm:p-5 transition-colors hover:bg-accent/30 dark:hover:bg-accent/15 group/item relative ${!notif.read ? "bg-blue-500/5 dark:bg-blue-500/5" : ""
-                  }`}
+                className={cn(
+                  "flex items-start justify-between gap-3.5 p-4 sm:p-5 transition-colors hover:bg-accent/30 dark:hover:bg-accent/15 group/item relative",
+                  !notif.read ? "bg-blue-500/5 dark:bg-blue-500/5" : "",
+                )}
               >
                 {/* Unread Glowing Dot */}
                 {!notif.read && (
@@ -303,9 +297,10 @@ export default function NotificationFeed({
 
                     {/* Corner Type Badge */}
                     <div
-                      className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-background ${getNotificationBadgeColor(
-                        notif.type
-                      )}`}
+                      className={cn(
+                        "absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-background",
+                        getNotificationBadgeColor(notif.type),
+                      )}
                     >
                       {getNotificationIcon(notif.type)}
                     </div>
@@ -322,7 +317,6 @@ export default function NotificationFeed({
                         >
                           {notif.sender.name}
                         </Link>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-500/15" />
                         <span className="text-xs text-muted-foreground">
                           @{notif.sender.username}
                         </span>
@@ -332,7 +326,7 @@ export default function NotificationFeed({
                       </div>
 
                       <span className="text-[11px] text-muted-foreground/75 font-medium shrink-0">
-                        {relativeTime}
+                        {relativeTime(notif.createdAt)}
                       </span>
                     </div>
 
@@ -368,7 +362,7 @@ export default function NotificationFeed({
                 <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
                   <Link
                     href={targetHref}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-accent/60 transition-colors"
+                    className={cn(iconButton, "hover:text-primary")}
                     title="View vibe"
                     aria-label="View vibe"
                   >
@@ -377,7 +371,7 @@ export default function NotificationFeed({
 
                   <button
                     onClick={(e) => handleDeleteNotif(e, notif.id)}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                    className={cn(iconButton, "hover:text-destructive hover:bg-destructive/10")}
                     title="Delete notification"
                     aria-label="Delete notification"
                   >

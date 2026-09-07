@@ -10,7 +10,6 @@ import {
   MessageCircle,
   Bookmark,
   Sparkles,
-  CheckCircle2,
   Coffee,
   Check,
   Clock,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function AppPreview() {
   const { container, item, whenInView } = useReveal({ y: 16, stagger: 0.08, duration: 0.6 });
@@ -177,7 +177,6 @@ export default function AppPreview() {
                       <span className="font-semibold text-foreground text-sm sm:text-base">
                         Aria Rostova
                       </span>
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-500/20" />
                       <span className="text-muted-foreground text-xs sm:text-sm">
                         @aria_creates
                       </span>
@@ -218,14 +217,13 @@ export default function AppPreview() {
                   <button
                     type="button"
                     onClick={togglePost1Like}
-                    className={`flex items-center gap-1.5 transition-colors ${
-                      post1Liked ? "text-rose-500 font-semibold" : "hover:text-rose-500"
-                    }`}
+                    className={cn(
+                      "flex items-center gap-1.5 transition-colors",
+                      post1Liked ? "text-rose-500 font-semibold" : "hover:text-rose-500",
+                    )}
                   >
                     <Heart
-                      className={`w-4 h-4 ${
-                        post1Liked ? "fill-rose-500 scale-110" : ""
-                      }`}
+                      className={cn("w-4 h-4", post1Liked ? "fill-rose-500 scale-110" : "")}
                     />
                     <span>{post1Likes}</span>
                   </button>
@@ -233,9 +231,10 @@ export default function AppPreview() {
                   <button
                     type="button"
                     onClick={() => setPost1ShowReplies(!post1ShowReplies)}
-                    className={`flex items-center gap-1.5 transition-colors ${
-                      post1ShowReplies ? "text-primary font-semibold" : "hover:text-primary"
-                    }`}
+                    className={cn(
+                      "flex items-center gap-1.5 transition-colors",
+                      post1ShowReplies ? "text-primary font-semibold" : "hover:text-primary",
+                    )}
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span>2 replies</span>
@@ -244,12 +243,13 @@ export default function AppPreview() {
                   <button
                     type="button"
                     onClick={() => setPost1Saved(!post1Saved)}
-                    className={`flex items-center gap-1.5 transition-colors ${
-                      post1Saved ? "text-amber-500 font-semibold" : "hover:text-amber-500"
-                    }`}
+                    className={cn(
+                      "flex items-center gap-1.5 transition-colors",
+                      post1Saved ? "text-amber-500 font-semibold" : "hover:text-amber-500",
+                    )}
                   >
                     <Bookmark
-                      className={`w-4 h-4 ${post1Saved ? "fill-amber-500" : ""}`}
+                      className={cn("w-4 h-4", post1Saved ? "fill-amber-500" : "")}
                     />
                   </button>
                 </div>
@@ -339,14 +339,13 @@ export default function AppPreview() {
                   <button
                     type="button"
                     onClick={togglePost2Like}
-                    className={`flex items-center gap-1.5 transition-colors ${
-                      post2Liked ? "text-rose-500 font-semibold" : "hover:text-rose-500"
-                    }`}
+                    className={cn(
+                      "flex items-center gap-1.5 transition-colors",
+                      post2Liked ? "text-rose-500 font-semibold" : "hover:text-rose-500",
+                    )}
                   >
                     <Heart
-                      className={`w-4 h-4 ${
-                        post2Liked ? "fill-rose-500 scale-110" : ""
-                      }`}
+                      className={cn("w-4 h-4", post2Liked ? "fill-rose-500 scale-110" : "")}
                     />
                     <span>{post2Likes}</span>
                   </button>
@@ -363,12 +362,13 @@ export default function AppPreview() {
                   <button
                     type="button"
                     onClick={() => setPost2Saved(!post2Saved)}
-                    className={`flex items-center gap-1.5 transition-colors ${
-                      post2Saved ? "text-amber-500 font-semibold" : "hover:text-amber-500"
-                    }`}
+                    className={cn(
+                      "flex items-center gap-1.5 transition-colors",
+                      post2Saved ? "text-amber-500 font-semibold" : "hover:text-amber-500",
+                    )}
                   >
                     <Bookmark
-                      className={`w-4 h-4 ${post2Saved ? "fill-amber-500" : ""}`}
+                      className={cn("w-4 h-4", post2Saved ? "fill-amber-500" : "")}
                     />
                   </button>
                 </div>

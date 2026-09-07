@@ -9,8 +9,9 @@ import React, {
   forwardRef,
 } from "react";
 import Image from "next/image";
-import { CheckCircle2, AtSign } from "lucide-react";
+import { AtSign } from "lucide-react";
 import { searchMentionUsers } from "@/server/actions/user";
+import { cn } from "@/lib/utils";
 
 export interface MentionUser {
   id: string;
@@ -110,9 +111,9 @@ const MentionTextarea = forwardRef<MentionTextareaRef, MentionTextareaProps>(
           setMentionStartIndex(atIndex);
 
           try {
-            const res = await searchMentionUsers(query);
-            if (res.status === 200 && res.users.length > 0) {
-              setSuggestions(res.users);
+            const result = await searchMentionUsers(query);
+            if (result.ok && result.data.length > 0) {
+              setSuggestions(result.data);
               setSelectedIndex(0);
               setShowPopup(true);
             } else {
@@ -237,12 +238,15 @@ const MentionTextarea = forwardRef<MentionTextareaRef, MentionTextareaProps>(
       "w-full font-sans text-sm sm:text-[15px] leading-relaxed tracking-normal p-0 m-0 border-0 outline-none whitespace-pre-wrap break-words overflow-y-auto subtle-scrollbar";
 
     return (
-      <div ref={containerRef} className={`relative w-full ${className}`}>
+      <div ref={containerRef} className={cn("relative w-full", className)}>
         {/* Backdrop Highlighting Mirror Layer */}
         <div
           ref={backdropRef}
           aria-hidden="true"
-          className={`absolute inset-0 pointer-events-none select-none text-foreground z-0 ${sharedTypography}`}
+          className={cn(
+            "absolute inset-0 pointer-events-none select-none text-foreground z-0",
+            sharedTypography,
+          )}
           style={{ minHeight }}
         >
           {renderBackdropContent()}
@@ -258,7 +262,10 @@ const MentionTextarea = forwardRef<MentionTextareaRef, MentionTextareaProps>(
           maxLength={maxLength}
           disabled={disabled}
           rows={rows}
-          className={`relative z-10 bg-transparent text-transparent caret-blue-500 selection:bg-blue-500/25 selection:text-blue-900 dark:selection:text-blue-100 resize-none ${sharedTypography}`}
+          className={cn(
+            "relative z-10 bg-transparent text-transparent caret-blue-500 selection:bg-blue-500/25 selection:text-blue-900 dark:selection:text-blue-100 resize-none",
+            sharedTypography,
+          )}
           style={{ minHeight }}
         />
 
@@ -284,11 +291,10 @@ const MentionTextarea = forwardRef<MentionTextareaRef, MentionTextareaProps>(
                   e.preventDefault(); // Prevent textarea blur
                   handleSelectUser(user);
                 }}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
-                  index === selectedIndex
-                    ? "bg-blue-500/15 border border-blue-500/30 text-foreground"
-                    : "hover:bg-accent/60 text-foreground/90 border border-transparent"
-                }`}
+                className={cn(
+                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors",
+                  index === selectedIndex ? "bg-blue-500/15 border border-blue-500/30 text-foreground" : "hover:bg-accent/60 text-foreground/90 border border-transparent",
+                )}
               >
                 {/* User Avatar */}
                 <div className="relative w-7 h-7 rounded-full overflow-hidden border border-border/60 shrink-0">
@@ -307,7 +313,6 @@ const MentionTextarea = forwardRef<MentionTextareaRef, MentionTextareaProps>(
                     <span className="font-bold text-xs truncate">
                       {user.name}
                     </span>
-                    <CheckCircle2 className="w-3 h-3 text-blue-500 fill-blue-500/15 shrink-0" />
                   </div>
                   <span className="text-[11px] text-blue-500 font-medium truncate">
                     @{user.username}

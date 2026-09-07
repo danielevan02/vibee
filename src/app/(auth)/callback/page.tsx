@@ -1,12 +1,8 @@
-import { onAuthenticateUser } from "@/server/data/user";
 import { redirect } from "next/navigation";
 
-export default async function CallbackPage(){
-  const auth = await onAuthenticateUser()
+import { getCurrentUserId } from "@/server/session";
 
-  if(auth.status === 200 || auth.status === 201){
-    redirect('/home')
-  } else {
-    redirect('/sign-in')
-  }
+export default async function CallbackPage() {
+  const userId = await getCurrentUserId();
+  redirect(userId ? "/home" : "/sign-in");
 }

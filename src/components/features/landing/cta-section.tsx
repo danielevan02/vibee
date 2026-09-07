@@ -83,8 +83,12 @@ export default function CTASection() {
               </div>
 
               {cleanHandle && (
-                <p className="mt-2 text-xs text-blue-600 dark:text-sky-400 font-medium flex items-center justify-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> vibee.app/@{cleanHandle} is available to reserve!
+                // Deliberately not a claim about availability - nothing here has
+                // asked the database, and only sign-up can answer that.
+                <p className="mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1">
+                  Continue to see if{" "}
+                  <span className="font-medium text-foreground">@{cleanHandle}</span>{" "}
+                  is free.
                 </p>
               )}
             </motion.div>
@@ -107,11 +111,11 @@ export default function CTASection() {
 
             <div className="mt-8 pt-6 border-t border-border/40 flex items-center justify-center">
               <Link
-                href="/home"
+                href="/sign-in"
                 className="inline-flex items-center gap-2 text-xs font-medium text-blue-600 dark:text-sky-400 hover:underline transition-colors"
               >
                 <Compass className="w-3.5 h-3.5 text-blue-500" />
-                Want to browse first? Explore community feed as guest →
+                Already have an account? Sign in →
               </Link>
             </div>
           </div>

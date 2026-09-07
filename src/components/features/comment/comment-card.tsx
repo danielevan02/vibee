@@ -1,16 +1,28 @@
 "use client";
 
 import { Comment, User } from "@/db/schema";
-import { formatDistanceToNowStrict, format } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { CheckCircle2, Heart, CornerDownRight, Copy, Check } from "lucide-react";
+import { Heart, CornerDownRight, Copy, Check, Trash2, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { deleteComment, toggleCommentLike } from "@/server/actions/comment";
+import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import MentionText from "@/components/ui/mention-text";
+import { cn } from "@/lib/utils";
+import { relativeTime } from "@/lib/date";
+import { actionButton, tapScale, tapSpring } from "@/lib/ui";
 
-export type CommentWithAuthor = Comment & { author: User };
+/**
+ * A comment as the reader sees it: `likes` is scoped to them by the data layer,
+ * so its length answers "did I like this", and `_count` carries the total.
+ */
+export type CommentWithAuthor = Comment & {
+  author: User;
+  _count?: { likes: number };
+  likes?: { authorId: string }[];
+};
 
 interface CommentCardProps {
   id: string;
@@ -28,6 +40,14 @@ interface CommentCardProps {
   composer?: React.ReactNode;
   /** Composer slots for this comment's own replies, keyed by reply id. */
   replyComposers?: Record<string, React.ReactNode>;
+  /** Total likes, and whether one of them is the reader's. */
+  likeCount?: number;
+  isLiked?: boolean;
+  /** Shown only when the reader may remove this comment. */
+  canDelete?: boolean;
+  onDeleted?: (commentId: string) => void;
+  /** Asked per reply, since a thread's replies have different authors. */
+  canDeleteReply?: (authorId: string) => boolean;
 }
 
 export default function CommentCard({
@@ -41,21 +61,57 @@ export default function CommentCard({
   isReply = false,
   composer,
   replyComposers,
+  likeCount: initialLikeCount = 0,
+  isLiked: initialIsLiked = false,
+  canDelete = false,
+  onDeleted,
+  canDeleteReply,
 }: CommentCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [copied, setCopied] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  let relativeTime = "";
-  try {
-    relativeTime = formatDistanceToNowStrict(new Date(createdAt), { addSuffix: true });
-  } catch {
-    relativeTime = format(new Date(createdAt), "MMM dd");
-  }
+  const postedAgo = relativeTime(createdAt);
 
-  const handleLike = () => {
-    setIsLiked((prev) => !prev);
-    setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
+  const handleLike = async () => {
+    const wasLiked = isLiked;
+    setIsLiked(!wasLiked);
+    setLikeCount((prev) => (wasLiked ? Math.max(0, prev - 1) : prev + 1));
+
+    try {
+      const result = await toggleCommentLike(id);
+      if (result.ok) {
+        // The server counted after writing, so take its numbers over the guess.
+        setIsLiked(result.data.isLiked);
+        setLikeCount(result.data.likeCount);
+      } else {
+        setIsLiked(wasLiked);
+        setLikeCount((prev) => (wasLiked ? prev + 1 : Math.max(0, prev - 1)));
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
+      }
+    } catch {
+      setIsLiked(wasLiked);
+      setLikeCount((prev) => (wasLiked ? prev + 1 : Math.max(0, prev - 1)));
+      toast.error("Can't like this comment");
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteComment(id);
+      if (result.ok) {
+        toast.success("Comment removed");
+        onDeleted?.(id);
+      } else {
+        toast.error(ACTION_ERROR_MESSAGE[result.error]);
+        setIsDeleting(false);
+      }
+    } catch {
+      toast.error("Failed to remove comment");
+      setIsDeleting(false);
+    }
   };
 
   const handleCopy = () => {
@@ -67,17 +123,20 @@ export default function CommentCard({
 
   return (
     <div
-      className={`relative flex items-start rounded-2xl hover:bg-accent/35 dark:hover:bg-accent/15 transition-colors group/item ${
-        isReply ? "gap-2.5 py-2.5 px-2.5" : "gap-3 sm:gap-3.5 py-3.5 px-3"
-      }`}
+      className={cn(
+        "relative flex items-start rounded-2xl hover:bg-accent/35 dark:hover:bg-accent/15 transition-colors group/item",
+        isReply ? "gap-2.5 py-2.5 px-2.5" : "gap-3 sm:gap-3.5 py-3.5 px-3",
+      )}
     >
       {/* Avatar with Thread Stem Line */}
       <div className="relative flex flex-col items-center shrink-0">
         <Link
           href={`/profile/${author.username}`}
-          className={`relative ${
-            isReply ? "w-7 h-7" : "w-9 h-9"
-          } rounded-full overflow-hidden border border-border/70 group-hover/item:border-primary/40 hover:ring-2 hover:ring-primary/40 transition-[color,background-color,border-color,box-shadow]`}
+          className={cn(
+            "relative",
+            isReply ? "w-7 h-7" : "w-9 h-9",
+            "rounded-full overflow-hidden border border-border/70 group-hover/item:border-primary/40 hover:ring-2 hover:ring-primary/40 transition-[color,background-color,border-color,box-shadow]",
+          )}
         >
           <Image
             src={author.photo || "/user-placeholder.png"}
@@ -106,7 +165,6 @@ export default function CommentCard({
             >
               {author.name}
             </Link>
-            <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 fill-blue-500/15 shrink-0" />
             <Link
               href={`/profile/${author.username}`}
               className="text-xs text-muted-foreground truncate hover:underline"
@@ -116,7 +174,7 @@ export default function CommentCard({
           </div>
 
           <span className="text-[11px] text-muted-foreground/75 font-medium shrink-0">
-            {relativeTime}
+            {postedAgo}
           </span>
         </div>
 
@@ -130,23 +188,20 @@ export default function CommentCard({
           {/* Heart / Like Button */}
           <button
             onClick={handleLike}
-            className={`flex items-center gap-1 transition-colors cursor-pointer ${
+            className={cn(
+              actionButton,
               isLiked
-                ? "text-rose-500 font-semibold"
-                : "hover:text-rose-500 text-muted-foreground/70"
-            }`}
+                ? "text-rose-500 font-medium"
+                : "text-muted-foreground/70 hover:text-rose-500",
+            )}
             aria-label="Like comment"
           >
-            <motion.div
-              whileTap={{ scale: 1.4 }}
-              transition={{ type: "spring", stiffness: 400, damping: 15 }}
-            >
+            <motion.span className="flex" whileTap={tapScale} transition={tapSpring}>
               <Heart
-                className={`w-3.5 h-3.5 ${
-                  isLiked ? "fill-rose-500 text-rose-500" : ""
-                }`}
+                className={cn("w-3.5 h-3.5", isLiked && "fill-rose-500")}
+                strokeWidth={1.75}
               />
-            </motion.div>
+            </motion.span>
             {likeCount > 0 && <span className="text-[11px]">{likeCount}</span>}
           </button>
 
@@ -154,7 +209,7 @@ export default function CommentCard({
           {onReply && (
             <button
               onClick={() => onReply({ id, username: author.username })}
-              className="flex items-center gap-1 hover:text-foreground transition-colors duration-200 cursor-pointer text-muted-foreground/70"
+              className={cn(actionButton, "text-muted-foreground/70 hover:text-foreground")}
               aria-label="Reply to comment"
             >
               <CornerDownRight className="w-3.5 h-3.5" />
@@ -165,7 +220,10 @@ export default function CommentCard({
           {/* Copy Comment Button */}
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1 hover:text-foreground transition-colors cursor-pointer text-muted-foreground/60 opacity-0 group-hover/item:opacity-100 transition-opacity"
+            className={cn(
+              actionButton,
+              "text-muted-foreground/60 hover:text-foreground opacity-0 group-hover/item:opacity-100",
+            )}
             aria-label="Copy comment"
           >
             {copied ? (
@@ -175,6 +233,27 @@ export default function CommentCard({
             )}
             <span className="text-[10px]">{copied ? "Copied" : "Copy"}</span>
           </button>
+
+          {/* Delete: only rendered for people the server would actually let
+              through, but the server checks again regardless. */}
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className={cn(
+                actionButton,
+                "text-muted-foreground/60 hover:text-destructive opacity-0 group-hover/item:opacity-100 disabled:opacity-50",
+              )}
+              aria-label="Delete comment"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Trash2 className="w-3 h-3" />
+              )}
+              <span className="text-[10px]">Delete</span>
+            </button>
+          )}
         </div>
 
         {composer}
@@ -194,6 +273,10 @@ export default function CommentCard({
                 onReply={onReply}
                 isReply
                 composer={replyComposers?.[reply.id]}
+                likeCount={reply._count?.likes ?? 0}
+                isLiked={(reply.likes?.length ?? 0) > 0}
+                canDelete={canDeleteReply?.(reply.authorId) ?? false}
+                onDeleted={onDeleted}
               />
             ))}
           </div>

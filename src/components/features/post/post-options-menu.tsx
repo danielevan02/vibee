@@ -11,11 +11,13 @@ import {
   Flag,
   Loader2,
   AlertTriangle,
+  Pencil,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import { deletePost } from "@/server/actions/post";
+import EditPostDialog from "./edit-post-dialog";
 import { toggleFollowUser } from "@/server/actions/user";
 import {
   Dialog,
@@ -23,6 +25,8 @@ import {
   DialogTitle,
 } from "@/components/animate-ui/radix/dialog";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { iconButton, menuItem } from "@/lib/ui";
 import ReportModal from "./report-modal";
 
 interface PostOptionsMenuProps {
@@ -30,9 +34,15 @@ interface PostOptionsMenuProps {
   authorId: string;
   authorUsername: string;
   isAuthor: boolean;
+  /** Resolved on the server, so the menu opens with the right label instead of
+   *  always offering "Follow" - which turned a click into a silent unfollow. */
+  isFollowingAuthor?: boolean;
   isBookmarked: boolean;
+  /** The body being edited, so the dialog opens on what is actually there. */
+  content: string | null;
   onToggleBookmark: () => void;
   onDeletePost?: () => void;
+  onEditPost?: (content: string) => void;
 }
 
 export default function PostOptionsMenu({
@@ -40,16 +50,20 @@ export default function PostOptionsMenu({
   authorId,
   authorUsername,
   isAuthor,
+  isFollowingAuthor = false,
   isBookmarked,
+  content,
   onToggleBookmark,
   onDeletePost,
+  onEditPost,
 }: PostOptionsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(isFollowingAuthor);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close when clicking outside
@@ -70,7 +84,7 @@ export default function PostOptionsMenu({
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
-      const url = `${window.location.origin}/home#post-${postId}`;
+      const url = `${window.location.origin}/post/${postId}`;
       navigator.clipboard.writeText(url);
       toast.success("Link copied to clipboard!");
       setIsOpen(false);
@@ -138,7 +152,7 @@ export default function PostOptionsMenu({
           e.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-accent/60 transition-colors cursor-pointer"
+        className={iconButton}
         aria-label="More options"
         aria-expanded={isOpen}
       >
@@ -160,9 +174,9 @@ export default function PostOptionsMenu({
             <button
               type="button"
               onClick={handleCopyLink}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer text-left"
+              className={menuItem}
             >
-              <Link2 className="w-4 h-4 text-muted-foreground" />
+              <Link2 className="w-4 h-4" />
               <span>Copy link to vibe</span>
             </button>
 
@@ -170,15 +184,9 @@ export default function PostOptionsMenu({
             <button
               type="button"
               onClick={handleBookmarkClick}
-              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer text-left"
+              className={menuItem}
             >
-              <Bookmark
-                className={`w-4 h-4 ${
-                  isBookmarked
-                    ? "fill-primary text-primary"
-                    : "text-muted-foreground"
-                }`}
-              />
+              <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-amber-500 text-amber-500")} />
               <span>{isBookmarked ? "Remove bookmark" : "Save vibe"}</span>
             </button>
 
@@ -189,12 +197,12 @@ export default function PostOptionsMenu({
                   type="button"
                   disabled={isFollowLoading}
                   onClick={handleFollowClick}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer text-left"
+                  className={menuItem}
                 >
                   {isFollowing ? (
                     <UserCheck className="w-4 h-4 text-emerald-500" />
                   ) : (
-                    <UserPlus className="w-4 h-4 text-muted-foreground" />
+                    <UserPlus className="w-4 h-4" />
                   )}
                   <span>
                     {isFollowing
@@ -208,7 +216,7 @@ export default function PostOptionsMenu({
                 <button
                   type="button"
                   onClick={handleReportClick}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer text-left"
+                  className={menuItem}
                 >
                   <Flag className="w-4 h-4" />
                   <span>Report vibe</span>
@@ -216,19 +224,30 @@ export default function PostOptionsMenu({
               </>
             )}
 
-            {/* If Author: Delete Post */}
+            {/* If Author: Edit & Delete */}
             {isAuthor && (
               <>
                 <div className="border-t border-border/50 my-1" />
                 <button
                   type="button"
                   onClick={() => {
+                    setIsEditOpen(true);
+                    setIsOpen(false);
+                  }}
+                  className={menuItem}
+                >
+                  <Pencil className="w-4 h-4" />
+                  <span>Edit vibe</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     setIsDeleteDialogOpen(true);
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer text-left"
+                  className={cn(menuItem, "text-rose-500 hover:text-rose-500 hover:bg-rose-500/10")}
                 >
-                  <Trash2 className="w-4 h-4 text-rose-500" />
+                  <Trash2 className="w-4 h-4" />
                   <span>Delete vibe</span>
                 </button>
               </>
@@ -258,7 +277,7 @@ export default function PostOptionsMenu({
               variant="outline"
               disabled={isDeleting}
               onClick={() => setIsDeleteDialogOpen(false)}
-              className="rounded-xl px-4 text-xs font-semibold cursor-pointer"
+              className="rounded-xl px-4 text-xs font-semibold"
             >
               Cancel
             </Button>
@@ -267,7 +286,7 @@ export default function PostOptionsMenu({
               variant="destructive"
               disabled={isDeleting}
               onClick={handleDeleteConfirm}
-              className="rounded-xl px-4 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
+              className="rounded-xl px-4 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white"
             >
               {isDeleting ? (
                 <>
@@ -281,6 +300,17 @@ export default function PostOptionsMenu({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit dialog. Mounted only while open so it always seeds from the
+          post's current body. */}
+      {isEditOpen && (
+        <EditPostDialog
+          postId={postId}
+          initialContent={content ?? ""}
+          onClose={() => setIsEditOpen(false)}
+          onSaved={(next) => onEditPost?.(next)}
+        />
+      )}
 
       {/* Real Interactive Report Modal */}
       <ReportModal

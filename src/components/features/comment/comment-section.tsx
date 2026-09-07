@@ -2,13 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Comment, Post, User } from "@/db/schema";
+import { Post, User } from "@/db/schema";
 import { Fragment, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
   SendHorizonal,
-  CheckCircle2,
   MessageCircle,
   MessageCircleDashed,
   Heart,
@@ -16,14 +15,18 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import CommentCard from "@/components/features/comment/comment-card";
+import CommentCard, {
+  type CommentWithAuthor,
+} from "@/components/features/comment/comment-card";
 import ImageLightbox from "@/components/ui/image-lightbox";
-import { WORD_LIMIT } from "@/config/constants";
+import { COMMENT_CHAR_LIMIT } from "@/config/constants";
 import { createComment } from "@/server/actions/comment";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import MentionText from "@/components/ui/mention-text";
+import { cn } from "@/lib/utils";
+import { overlayButton, overlayChip } from "@/lib/ui";
 import MentionTextarea, { MentionTextareaRef } from "@/components/ui/mention-textarea";
 import EmojiPicker from "@/components/ui/emoji-picker";
 import ReplyComposer from "./reply-composer";
@@ -43,9 +46,16 @@ interface CommentSectionProps {
   comments: ThreadComment[];
   /** Reports a change in total reply count to the owner of the displayed badge. */
   onCommentCountChange?: (delta: number) => void;
+  /**
+   * Where this thread is being shown. In a dialog it owns a fixed box and
+   * scrolls itself; on a permalink page the page already scrolls, and a nested
+   * scroller would trap the wheel.
+   */
+  layout?: "dialog" | "page";
 }
 
-type CommentWithAuthor = Comment & { author: User };
+// Reuse the card's own shape rather than restating it here - the two drifted,
+// and the card is what actually reads these fields.
 export type ThreadComment = CommentWithAuthor & { replies?: CommentWithAuthor[] };
 
 const QUICK_EMOJIS = ["👏", "🔥", "❤️", "🙌", "💡", "✨"];
@@ -58,7 +68,9 @@ export default function CommentSection({
   wordLimit,
   comments,
   onCommentCountChange,
+  layout = "dialog",
 }: CommentSectionProps) {
+  const isPage = layout === "page";
   const { data: session } = authClient.useSession();
   const [isExpand, setIsExpand] = useState(false);
   const [commentList, setCommentList] = useState(comments);
@@ -93,7 +105,7 @@ export default function CommentSection({
   };
 
   const handleAddEmoji = (emoji: string) => {
-    if (content.length + emoji.length > WORD_LIMIT) return;
+    if (content.length + emoji.length > COMMENT_CHAR_LIMIT) return;
     const newText = content + emoji;
     setContent(newText);
     setWordCount(newText.length);
@@ -174,6 +186,28 @@ export default function CommentSection({
   const currentUserPhoto =
     session?.user?.image || "/user-placeholder.png";
 
+  /** The author of a comment may remove it, and so may the owner of the thread.
+   *  The server decides for real; this only chooses whether to draw the button. */
+  const canRemove = (authorId: string) =>
+    session?.user?.id === authorId || session?.user?.id === post.authorId;
+
+  const handleCommentDeleted = (commentId: string) => {
+    setCommentList((prev) => {
+      const removed = prev.find((c) => c.id === commentId);
+      if (removed) {
+        // A top-level comment takes its replies with it, in the UI as in the DB.
+        onCommentCountChange?.(-(1 + (removed.replies?.length ?? 0)));
+        return prev.filter((c) => c.id !== commentId);
+      }
+
+      onCommentCountChange?.(-1);
+      return prev.map((c) => ({
+        ...c,
+        replies: c.replies?.filter((r) => r.id !== commentId),
+      }));
+    });
+  };
+
   const totalReplies = commentList.reduce(
     (sum, comment) => sum + 1 + (comment.replies?.length ?? 0),
     0
@@ -192,9 +226,15 @@ export default function CommentSection({
 
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 h-full overflow-hidden">
-      {/* Sticky Top Header Bar */}
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 border-b border-border/50 bg-background/90 backdrop-blur-xl shrink-0">
+    <div className={cn("flex flex-col", !isPage && "flex-1 min-h-0 h-full overflow-hidden")}>
+      {/* Top Header Bar. Sticks to the dialog's own box, or to the page's
+          masthead when the thread is a permalink. */}
+      <div
+        className={cn(
+          "sticky z-10 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 border-b border-border/50 bg-background/90 backdrop-blur-xl shrink-0",
+          isPage ? "top-masthead" : "top-0",
+        )}
+      >
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0">
             <MessageCircle className="w-4 h-4" />
@@ -215,7 +255,12 @@ export default function CommentSection({
       </div>
 
       {/* Scrollable Conversation Canvas */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain subtle-scrollbar px-4 sm:px-6 py-4 sm:py-5 pb-12 sm:pb-16 space-y-5 sm:space-y-6">
+      <div
+        className={cn(
+          "px-4 sm:px-6 py-4 sm:py-5 pb-12 sm:pb-16 space-y-5 sm:space-y-6",
+          !isPage && "flex-1 min-h-0 overflow-y-auto overscroll-contain subtle-scrollbar",
+        )}
+      >
         {/* The Root Post Card with Vertical Threadline */}
         <div className="relative flex items-start gap-3 sm:gap-3.5">
           {/* Left: Author Avatar + Connecting Threadline */}
@@ -248,7 +293,6 @@ export default function CommentSection({
                 >
                   {post.author.name}
                 </Link>
-                <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-500/15 shrink-0" />
                 <Link
                   href={`/profile/${post.author.username}`}
                   className="text-xs text-muted-foreground truncate hover:underline"
@@ -267,7 +311,7 @@ export default function CommentSection({
               {showReadMore && (
                 <button
                   onClick={() => setIsExpand(!isExpand)}
-                  className="text-primary hover:underline font-semibold cursor-pointer ml-1"
+                  className="text-primary hover:underline font-semibold ml-1"
                 >
                   {isExpand ? "Show less" : "Read more"}
                 </button>
@@ -315,7 +359,10 @@ export default function CommentSection({
                             prev > 0 ? prev - 1 : postImages.length - 1
                           );
                         }}
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/65 hover:bg-black/85 text-white/90 hover:text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform,opacity] active:scale-95 cursor-pointer opacity-0 group-hover/media:opacity-100 sm:opacity-75 sm:hover:opacity-100"
+                        className={cn(
+                          overlayButton,
+                          "absolute left-2.5 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/media:opacity-100 sm:opacity-75 sm:hover:opacity-100",
+                        )}
                         aria-label="Previous photo"
                         title="Previous photo"
                       >
@@ -330,7 +377,10 @@ export default function CommentSection({
                             prev < postImages.length - 1 ? prev + 1 : 0
                           );
                         }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/65 hover:bg-black/85 text-white/90 hover:text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform,opacity] active:scale-95 cursor-pointer opacity-0 group-hover/media:opacity-100 sm:opacity-75 sm:hover:opacity-100"
+                        className={cn(
+                          overlayButton,
+                          "absolute right-2.5 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover/media:opacity-100 sm:opacity-75 sm:hover:opacity-100",
+                        )}
                         aria-label="Next photo"
                         title="Next photo"
                       >
@@ -338,7 +388,7 @@ export default function CommentSection({
                       </button>
 
                       {/* Counter Badge */}
-                      <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/15 text-white text-[11px] font-semibold flex items-center gap-1 z-10 pointer-events-none">
+                      <div className={cn(overlayChip, "absolute top-3 right-3 font-mono flex items-center gap-1 z-10 pointer-events-none")}>
                         <span>
                           {activeSlide + 1}/{postImages.length}
                         </span>
@@ -354,11 +404,10 @@ export default function CommentSection({
                               e.stopPropagation();
                               setActiveSlide(idx);
                             }}
-                            className={`rounded-full transition-[width,background-color] duration-200 cursor-pointer ${
-                              idx === activeSlide
-                                ? "w-4 h-1.5 bg-white"
-                                : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
-                            }`}
+                            className={cn(
+                              "rounded-full transition-[width,background-color] duration-200",
+                              idx === activeSlide ? "w-4 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80",
+                            )}
                             aria-label={`Go to photo ${idx + 1}`}
                           />
                         ))}
@@ -367,7 +416,7 @@ export default function CommentSection({
                   )}
 
                   {/* Floating zoom badge */}
-                  <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-white text-[11px] font-medium flex items-center gap-1.5 opacity-0 group-hover/media:opacity-100 transition-[transform,opacity] duration-200 transform translate-y-1 group-hover/media:translate-y-0 pointer-events-none">
+                  <div className={cn(overlayChip, "absolute bottom-3 right-3 flex items-center gap-1.5 opacity-0 group-hover/media:opacity-100 transition-[transform,opacity] duration-200 translate-y-1 group-hover/media:translate-y-0 pointer-events-none")}>
                     <Maximize2 className="w-3 h-3 text-white/90" />
                     <span>View photo</span>
                   </div>
@@ -428,7 +477,7 @@ export default function CommentSection({
               onChange={handleContent}
               placeholder={`Reply to @${post.author.username}\u2026`}
               disabled={loading}
-              maxLength={WORD_LIMIT}
+              maxLength={COMMENT_CHAR_LIMIT}
               rows={2}
               minHeight="64px"
             />
@@ -450,7 +499,7 @@ export default function CommentSection({
                       key={emoji}
                       type="button"
                       onClick={() => handleAddEmoji(emoji)}
-                      className="w-6 h-6 rounded-md hover:bg-accent/60 flex items-center justify-center text-xs transition-transform hover:scale-125 active:scale-95 cursor-pointer"
+                      className="w-6 h-6 rounded-md hover:bg-accent/60 flex items-center justify-center text-xs transition-transform hover:scale-125 active:scale-95"
                       aria-label={`Insert ${emoji}`}
                     >
                       {emoji}
@@ -462,22 +511,19 @@ export default function CommentSection({
               {/* Action Buttons & Counter */}
               <div className="flex items-center gap-2.5 shrink-0">
                 <span
-                  className={`text-[11px] font-mono font-medium ${
-                    wordCount >= WORD_LIMIT
-                      ? "text-destructive font-bold"
-                      : wordCount >= WORD_LIMIT - 30
-                      ? "text-amber-500"
-                      : "text-muted-foreground"
-                  }`}
+                  className={cn(
+                    "text-[11px] font-mono font-medium",
+                    wordCount >= COMMENT_CHAR_LIMIT ? "text-destructive font-bold" : wordCount >= COMMENT_CHAR_LIMIT - 30 ? "text-amber-500" : "text-muted-foreground",
+                  )}
                 >
-                  {wordCount}/{WORD_LIMIT}
+                  {wordCount}/{COMMENT_CHAR_LIMIT}
                 </span>
 
                 <Button
                   size="sm"
                   disabled={!content.trim() || loading}
                   onClick={handleSubmit}
-                  className="rounded-full h-8 px-4 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 flex items-center gap-1.5 active:scale-95 transition-[color,background-color,transform] cursor-pointer disabled:opacity-50"
+                  className="rounded-full h-8 px-4 text-xs font-medium bg-foreground text-background hover:bg-foreground/90 flex items-center gap-1.5 active:scale-95 transition-[color,background-color,transform] disabled:opacity-50"
                 >
                   {loading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -515,6 +561,11 @@ export default function CommentSection({
                     isLast={index === commentList.length - 1}
                     onReply={handleOpenReply}
                     replies={comment.replies ?? []}
+                    likeCount={comment._count?.likes ?? 0}
+                    isLiked={(comment.likes?.length ?? 0) > 0}
+                    canDelete={canRemove(comment.authorId)}
+                    canDeleteReply={canRemove}
+                    onDeleted={handleCommentDeleted}
                     composer={
                       replyTo?.id === comment.id ? replyComposerNode : null
                     }

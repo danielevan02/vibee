@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import BrandLogo from "@/components/features/shell/brand-logo";
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -65,9 +67,10 @@ export default function SignUpPage() {
       }
 
       toast.success("Account created successfully! Welcome to VIBEE.");
-      setTimeout(() => {
-        window.location.href = "/home";
-      }, 400);
+      // push + refresh rather than a hard reload: refresh drops the Router
+      // Cache so the server re-renders with the session cookie just set.
+      router.push("/home");
+      router.refresh();
     } catch (err: unknown) {
       console.error("Sign up error:", err);
       toast.error("An unexpected error occurred. Please try again.");
@@ -84,22 +87,7 @@ export default function SignUpPage() {
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6 space-y-2">
           <Link href="/" className="inline-block transition-transform hover:scale-105 mb-1">
-            <Image
-              src="/black-logo.png"
-              alt="VIBEE"
-              width={44}
-              height={44}
-              className="w-11 h-11 object-contain dark:hidden"
-              priority
-            />
-            <Image
-              src="/white-logo.png"
-              alt="VIBEE"
-              width={44}
-              height={44}
-              className="w-11 h-11 object-contain hidden dark:block"
-              priority
-            />
+            <BrandLogo size={44} priority />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-serif font-normal tracking-tight text-foreground">
             Create your account

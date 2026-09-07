@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, SendHorizonal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MentionTextarea, { MentionTextareaRef } from "@/components/ui/mention-textarea";
-import { WORD_LIMIT } from "@/config/constants";
+import { COMMENT_CHAR_LIMIT } from "@/config/constants";
+import { cn } from "@/lib/utils";
 
 interface ReplyComposerProps {
   /** Handle being replied to; prefilled as a mention. */
@@ -61,26 +62,25 @@ export default function ReplyComposer({
           onChange={setContent}
           placeholder={`Reply to @${replyingTo}…`}
           disabled={loading}
-          maxLength={WORD_LIMIT}
+          maxLength={COMMENT_CHAR_LIMIT}
           rows={1}
           minHeight="36px"
         />
 
         <div className="flex items-center justify-end gap-2 pt-1.5">
           <span
-            className={`text-[11px] font-mono ${
-              content.length >= WORD_LIMIT
-                ? "text-destructive"
-                : "text-muted-foreground"
-            }`}
+            className={cn(
+              "text-[11px] font-mono",
+              content.length >= COMMENT_CHAR_LIMIT ? "text-destructive" : "text-muted-foreground",
+            )}
           >
-            {content.length}/{WORD_LIMIT}
+            {content.length}/{COMMENT_CHAR_LIMIT}
           </span>
 
           <button
             type="button"
             onClick={onCancel}
-            className="h-7 px-2.5 rounded-full text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition-colors duration-200 cursor-pointer flex items-center gap-1"
+            className="h-7 px-2.5 rounded-full text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.05] transition-colors duration-200 flex items-center gap-1"
           >
             <X className="w-3 h-3" />
             Cancel
@@ -90,7 +90,7 @@ export default function ReplyComposer({
             size="sm"
             disabled={!canSend}
             onClick={() => onSubmit(content)}
-            className="rounded-full h-7 px-3 text-[11px] font-medium bg-foreground text-background hover:bg-foreground/90 flex items-center gap-1.5 active:scale-95 transition-[color,background-color,transform] cursor-pointer disabled:opacity-50"
+            className="rounded-full h-7 px-3 text-[11px] font-medium bg-foreground text-background hover:bg-foreground/90 flex items-center gap-1.5 active:scale-95 transition-[color,background-color,transform] disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="w-3 h-3 animate-spin" />

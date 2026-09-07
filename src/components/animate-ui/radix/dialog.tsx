@@ -33,20 +33,22 @@ const useDialog = (): DialogContextType => {
 type DialogProps = React.ComponentProps<typeof DialogPrimitive.Root>;
 
 function Dialog({ children, ...props }: DialogProps) {
-  const [isOpen, setIsOpen] = React.useState(
-    props?.open ?? props?.defaultOpen ?? false,
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(
+    props?.defaultOpen ?? false,
   );
 
-  React.useEffect(() => {
-    if (props?.open !== undefined) setIsOpen(props.open);
-  }, [props?.open]);
+  // A supplied `open` makes this controlled: read it, do not copy it. Mirroring
+  // it into state through an effect left the context a render behind the
+  // dialog's real state on every open.
+  const isControlled = props?.open !== undefined;
+  const isOpen = isControlled ? props.open! : uncontrolledOpen;
 
   const handleOpenChange = React.useCallback(
     (open: boolean) => {
-      setIsOpen(open);
+      if (!isControlled) setUncontrolledOpen(open);
       props.onOpenChange?.(open);
     },
-    [props],
+    [isControlled, props],
   );
 
   return (

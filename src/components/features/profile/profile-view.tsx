@@ -8,7 +8,6 @@ import {
   Calendar,
   MapPin,
   Globe,
-  CheckCircle2,
   SlidersHorizontal,
   UserPlus,
   UserCheck,
@@ -23,15 +22,17 @@ import {
   Maximize2,
   Bookmark,
 } from "lucide-react";
-import { format } from "date-fns";
 import { toggleFollowUser } from "@/server/actions/user";
 import PostCard from "@/components/features/post/post-card";
 import ImageLightbox from "@/components/ui/image-lightbox";
-import EditProfileModal from "@/components/features/profile/edit-profile-modal";
+import EditProfileModal, {
+  type ProfileImageUpdate,
+} from "@/components/features/profile/edit-profile-modal";
 import MentionText from "@/components/ui/mention-text";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth-client";
+import { monthAndYear, shortDate } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 type ProfileTab = "vibes" | "replies" | "media" | "likes" | "bookmarks";
 
@@ -80,9 +81,15 @@ interface ProfilePostItem {
       photo: string | null;
     };
   }[];
+  /** Scoped to the viewer: non-empty means the viewer liked this post. */
   likes: {
     authorId: string;
   }[];
+  /** Scoped to the viewer, same as `likes`. */
+  bookmarks: {
+    userId: string;
+  }[];
+  viewerFollowsAuthor: boolean;
 }
 
 interface ProfileReplyItem {
@@ -145,7 +152,6 @@ export default function ProfileView({
       );
     });
   };
-  const { data: session } = authClient.useSession();
 
   const [profile, setProfile] = useState<UserProfileData | null>(initialProfile);
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
@@ -189,12 +195,7 @@ export default function ProfileView({
     }
   };
 
-  const handleProfileUpdated = (updated: {
-    name: string;
-    bio: string | null;
-    website: string | null;
-    location: string | null;
-  }) => {
+  const handleProfileUpdated = (updated: ProfileImageUpdate) => {
     setProfile((prev) =>
       prev
         ? {
@@ -204,15 +205,6 @@ export default function ProfileView({
         : prev
     );
   };
-
-  if (false) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-muted-foreground">
-        <Loader2 className="w-7 h-7 animate-spin text-primary" />
-        <span className="text-xs font-medium">Loading profile...</span>
-      </div>
-    );
-  }
 
   if (!profile) {
     return (
@@ -234,17 +226,12 @@ export default function ProfileView({
     );
   }
 
-  let joinDateFormatted = "Recently";
-  try {
-    joinDateFormatted = format(new Date(profile.createdAt), "MMMM yyyy");
-  } catch {
-    // fallback
-  }
-
   return (
     <div className="flex flex-col min-h-full shrink-0 pb-24 md:pb-16">
-      {/* Top Header Bar */}
-      <div className="sticky top-0 z-20 backdrop-blur-xl bg-background/85 border-b border-border/50 px-4 sm:px-6 py-3 flex items-center gap-3">
+      {/* Masthead (sticky layer 1). Its height is a token rather than the sum
+          of its padding and contents, because the tab strip below sticks at
+          exactly that height - see --spacing-masthead in globals.css. */}
+      <div className="sticky top-0 z-20 h-masthead shrink-0 backdrop-blur-xl bg-background/85 border-b border-border/50 px-4 sm:px-6 flex items-center gap-3">
         <Button
           asChild
           variant="ghost"
@@ -255,21 +242,43 @@ export default function ProfileView({
             <ArrowLeft className="w-4 h-4" />
           </Link>
         </Button>
-        <div>
-          <h1 className="font-serif font-normal text-base sm:text-lg tracking-tight flex items-center gap-1.5 text-foreground">
+        <div className="min-w-0">
+          <h1 className="font-serif font-normal text-base sm:text-lg leading-6 tracking-tight text-foreground truncate">
             {profile.name}
-            <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-500/15" />
           </h1>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[11px] leading-4 text-muted-foreground">
             {profile.stats.posts} {profile.stats.posts === 1 ? "vibe" : "vibes"}
           </p>
         </div>
       </div>
 
-      {/* Hero Banner with Dynamic Gradient */}
+      {/* Hero Banner: the reader's own cover when they have one, otherwise the
+          painted gradient - so an empty profile still looks deliberate. */}
       <div className="relative h-36 sm:h-48 w-full bg-gradient-to-r from-blue-600/25 via-sky-500/20 to-indigo-600/30 overflow-hidden border-b border-border/60">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-sky-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-10 -top-10 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+        {profile.coverImage ? (
+          <button
+            type="button"
+            onClick={() => setLightboxImage(profile.coverImage)}
+            className="absolute inset-0 cursor-zoom-in group/cover"
+            aria-label="View cover photo"
+            title="Click to view cover photo"
+          >
+            <Image
+              src={profile.coverImage}
+              alt={`${profile.name}'s cover photo`}
+              fill
+              sizes="(max-width: 768px) 100vw, 672px"
+              className="object-cover"
+              priority
+            />
+            <span className="absolute inset-0 bg-black/15 opacity-0 group-hover/cover:opacity-100 transition-opacity" />
+          </button>
+        ) : (
+          <>
+            <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-sky-500/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -left-10 -top-10 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+          </>
+        )}
       </div>
 
       {/* Profile Info Container */}
@@ -278,7 +287,7 @@ export default function ProfileView({
         <div className="flex justify-between items-end -mt-12 sm:-mt-14 mb-4">
           <div
             onClick={() => setLightboxImage(profile.photo)}
-            className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-background overflow-hidden bg-muted/40 cursor-zoom-in group/avatar ring-2 ring-blue-500/20"
+            className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-background overflow-hidden bg-muted/40 cursor-zoom-in group/avatar"
             title="Click to view full photo"
           >
             <Image
@@ -301,7 +310,7 @@ export default function ProfileView({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditModalOpen(true)}
-                className="rounded-full font-medium text-xs h-9 px-4 border-border/70 hover:bg-accent/60 flex items-center gap-1.5 cursor-pointer"
+                className="rounded-full font-medium text-xs h-9 px-4 border-border/70 hover:bg-accent/60 flex items-center gap-1.5"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5 text-primary" />
                 <span>Edit Profile</span>
@@ -312,10 +321,10 @@ export default function ProfileView({
                   size="sm"
                   variant={isFollowing ? "outline" : "default"}
                   onClick={handleFollowToggle}
-                  className={`rounded-full font-semibold text-xs h-9 px-4 cursor-pointer transition-colors ${isFollowing
-                      ? "border-border/70 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-                      : "bg-foreground text-background hover:bg-foreground/90 border-0"
-                    }`}
+                  className={cn(
+                    "rounded-full font-semibold text-xs h-9 px-4 transition-colors",
+                    isFollowing ? "border-border/70 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30" : "bg-foreground text-background hover:bg-foreground/90 border-0",
+                  )}
                 >
                   {isFollowing ? (
                     <>
@@ -340,7 +349,6 @@ export default function ProfileView({
             <h2 className="font-serif font-normal text-2xl sm:text-3xl tracking-tight text-foreground">
               {profile.name}
             </h2>
-            <CheckCircle2 className="w-5 h-5 text-blue-500 fill-blue-500/15" />
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground font-medium">
             @{profile.username}
@@ -383,7 +391,7 @@ export default function ProfileView({
 
           <div className="flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
-            <span>Joined {joinDateFormatted}</span>
+            <span>Joined {monthAndYear(profile.createdAt)}</span>
           </div>
         </div>
 
@@ -421,13 +429,13 @@ export default function ProfileView({
       </div>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center border-b border-border/40 bg-background/50 backdrop-blur-md sticky top-[57px] z-10 px-2 sm:px-4">
+      <div className="sticky top-masthead z-10 h-subheader shrink-0 flex items-stretch border-b border-border/50 bg-background/85 backdrop-blur-xl px-2 sm:px-4">
         <button
           onClick={() => setActiveTab("vibes")}
-          className={`flex-1 py-3 text-xs sm:text-sm font-semibold transition-colors relative cursor-pointer ${activeTab === "vibes"
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground"
-            }`}
+          className={cn(
+            "flex-1 flex items-center justify-center text-xs sm:text-sm font-semibold transition-colors relative",
+            activeTab === "vibes" ? "text-primary" : "text-muted-foreground hover:text-foreground",
+          )}
         >
           <span>Vibes</span>
           {activeTab === "vibes" && (
@@ -437,10 +445,10 @@ export default function ProfileView({
 
         <button
           onClick={() => setActiveTab("replies")}
-          className={`flex-1 py-3 text-xs sm:text-sm font-semibold transition-colors relative cursor-pointer ${activeTab === "replies"
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground"
-            }`}
+          className={cn(
+            "flex-1 flex items-center justify-center text-xs sm:text-sm font-semibold transition-colors relative",
+            activeTab === "replies" ? "text-primary" : "text-muted-foreground hover:text-foreground",
+          )}
         >
           <span>Replies</span>
           {activeTab === "replies" && (
@@ -450,10 +458,10 @@ export default function ProfileView({
 
         <button
           onClick={() => setActiveTab("media")}
-          className={`flex-1 py-3 text-xs sm:text-sm font-semibold transition-colors relative cursor-pointer ${activeTab === "media"
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground"
-            }`}
+          className={cn(
+            "flex-1 flex items-center justify-center text-xs sm:text-sm font-semibold transition-colors relative",
+            activeTab === "media" ? "text-primary" : "text-muted-foreground hover:text-foreground",
+          )}
         >
           <span>Media</span>
           {activeTab === "media" && (
@@ -463,10 +471,10 @@ export default function ProfileView({
 
         <button
           onClick={() => setActiveTab("likes")}
-          className={`flex-1 py-3 text-xs sm:text-sm font-semibold transition-colors relative cursor-pointer ${activeTab === "likes"
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground"
-            }`}
+          className={cn(
+            "flex-1 flex items-center justify-center text-xs sm:text-sm font-semibold transition-colors relative",
+            activeTab === "likes" ? "text-primary" : "text-muted-foreground hover:text-foreground",
+          )}
         >
           <span>Likes</span>
           {activeTab === "likes" && (
@@ -477,10 +485,10 @@ export default function ProfileView({
         {isOwnProfile && (
           <button
             onClick={() => setActiveTab("bookmarks")}
-            className={`flex-1 py-3 text-xs sm:text-sm font-semibold transition-colors relative cursor-pointer ${activeTab === "bookmarks"
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-              }`}
+            className={cn(
+              "flex-1 flex items-center justify-center text-xs sm:text-sm font-semibold transition-colors relative",
+              activeTab === "bookmarks" ? "text-primary" : "text-muted-foreground hover:text-foreground",
+            )}
           >
             <span>Saved</span>
             {activeTab === "bookmarks" && (
@@ -545,7 +553,7 @@ export default function ProfileView({
                       Replied to <strong className="text-foreground">@{reply.post?.author?.username}</strong>
                     </span>
                     <span>
-                      {format(new Date(reply.createdAt), "MMM dd")}
+                      {shortDate(reply.createdAt)}
                     </span>
                   </div>
                   <p className="text-sm text-foreground/90 leading-relaxed">
@@ -553,7 +561,7 @@ export default function ProfileView({
                   </p>
                   {reply.post && (
                     <Link
-                      href={`/home#post-${reply.post.id}`}
+                      href={`/post/${reply.post.id}`}
                       className="block p-2.5 rounded-xl border border-border/50 bg-background/50 hover:border-primary/40 text-xs text-muted-foreground transition-colors"
                     >
                       <span className="font-semibold text-foreground">
@@ -580,20 +588,13 @@ export default function ProfileView({
           /* Vibes or Likes Stream */
           posts.length > 0 ? (
             <div className="space-y-4">
-              {posts.map((post) => {
-                const isLiked = post.likes?.some(
-                  (l: { authorId: string }) => l.authorId === session?.user?.id
-                );
-
-                return (
-                  <PostCard
-                    key={post.id}
-                    post={post as unknown as React.ComponentProps<typeof PostCard>["post"]}
-                    isLiked={isLiked}
-                    comments={(post.comments || []) as unknown as React.ComponentProps<typeof PostCard>["comments"]}
-                  />
-                );
-              })}
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post as unknown as React.ComponentProps<typeof PostCard>["post"]}
+                  comments={(post.comments || []) as unknown as React.ComponentProps<typeof PostCard>["comments"]}
+                />
+              ))}
             </div>
           ) : (
             <div className="text-center py-16 px-4">
@@ -625,16 +626,18 @@ export default function ProfileView({
         )}
       </div>
 
-      {/* Edit Profile Modal */}
-      {isOwnProfile && (
+      {/* Edit Profile Modal. Mounted only while open: its fields seed from
+          props, so a persistent instance would reopen showing stale values. */}
+      {isOwnProfile && isEditModalOpen && (
         <EditProfileModal
-          isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           currentUser={{
             name: profile.name,
             bio: profile.bio,
             website: profile.website,
             location: profile.location,
+            photo: profile.photo,
+            coverImage: profile.coverImage,
           }}
           onSuccess={handleProfileUpdated}
         />

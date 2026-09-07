@@ -5,6 +5,7 @@ import Image from "next/image";
 import { motion } from "motion/react";
 import { useReveal } from "./motion-presets";
 import { Sparkles, MessageCircle, Heart, Check, Compass, PenTool } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function FeaturesBento() {
   const [selectedFrequency, setSelectedFrequency] = useState("Philosophy");
@@ -153,11 +154,10 @@ export default function FeaturesBento() {
                     key={freq}
                     type="button"
                     onClick={() => setSelectedFrequency(freq)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                      selectedFrequency === freq
-                        ? "bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white font-semibold"
-                        : "bg-background/80 hover:bg-blue-500/10 hover:text-foreground text-muted-foreground"
-                    }`}
+                    className={cn(
+                      "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
+                      selectedFrequency === freq ? "bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white font-semibold" : "bg-background/80 hover:bg-blue-500/10 hover:text-foreground text-muted-foreground",
+                    )}
                   >
                     #{freq}
                   </button>
@@ -222,11 +222,12 @@ export default function FeaturesBento() {
                 <button
                   type="button"
                   onClick={() => setLikedThread(!likedThread)}
-                  className={`flex items-center gap-1 text-[11px] transition-colors ${
-                    likedThread ? "text-rose-500 font-semibold" : "text-muted-foreground hover:text-rose-500"
-                  }`}
+                  className={cn(
+                    "flex items-center gap-1 text-[11px] transition-colors",
+                    likedThread ? "text-rose-500 font-semibold" : "text-muted-foreground hover:text-rose-500",
+                  )}
                 >
-                  <Heart className={`w-3 h-3 ${likedThread ? "fill-rose-500" : ""}`} />
+                  <Heart className={cn("w-3 h-3", likedThread ? "fill-rose-500" : "")} />
                   <span>{likedThread ? 12 : 11}</span>
                 </button>
               </div>

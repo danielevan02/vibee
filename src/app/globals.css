@@ -70,6 +70,24 @@
   --color-destructive-foreground: var(--destructive-foreground);
 }
 
+/* ==========================================================================
+   Sticky layer stack
+
+   A page can pin more than one row: a masthead at the top of the scroll
+   container, and under it a sub-header such as the profile tab strip. Those two
+   have to agree on one number, and the only safe way to make them agree is to
+   never write that number twice. These tokens generate real utilities
+   (`h-masthead`, `top-masthead`, `h-subheader`), so a layer declares its own
+   height and the layer below sticks at the same token.
+
+   Anything given `h-masthead` must also centre its content rather than grow
+   with it - a sticky layer with an intrinsic height cannot be pointed at.
+   ========================================================================== */
+@theme {
+  --spacing-masthead: 4rem;
+  --spacing-subheader: 2.75rem;
+}
+
 :root {
   --radius: 1.3rem;
   --background: oklch(1.0000 0 0);
@@ -191,11 +209,21 @@
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }
-}
 
- html {
-  scroll-behavior: smooth;
- }
+  /* Tailwind v4's preflight leaves buttons on the browser's default cursor,
+     which is why nearly every control in this app hand-wrote `cursor-pointer`
+     and the ones that forgot felt dead. Declaring it once means a new button is
+     right without remembering. Utilities still win on specificity, so
+     `cursor-zoom-in` and friends keep overriding it. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
 
 /* ==========================================================================
    Typography Hierarchy: Inter for Body, Manrope for Headings & Accents
@@ -269,11 +297,6 @@ h1, h2, h3, h4, h5, h6, .font-heading, .font-display {
 
 .subtle-scrollbar::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklab, var(--muted-foreground) 40%, transparent);
-}
-
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 90px;
 }
 
 /* ==========================================================================

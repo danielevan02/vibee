@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Send, CheckCircle2, Feather, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export default function ContrastQuietSection() {
   const [composerText, setComposerText] = useState("");
@@ -95,11 +96,10 @@ export default function ContrastQuietSection() {
                     key={preset.label}
                     type="button"
                     onClick={() => handleSelectPreset(preset)}
-                    className={`px-3 py-1 rounded-full text-xs transition-colors ${
-                      activeMood === preset.label
-                        ? "bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white font-semibold border border-sky-400/40"
-                        : "bg-white/10 hover:bg-blue-500/20 text-white/80 border border-white/10"
-                    }`}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs transition-colors",
+                      activeMood === preset.label ? "bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white font-semibold border border-sky-400/40" : "bg-white/10 hover:bg-blue-500/20 text-white/80 border border-white/10",
+                    )}
                   >
                     {preset.label}
                   </button>
@@ -171,11 +171,12 @@ export default function ContrastQuietSection() {
                             setLiked(!liked);
                             setLikes(liked ? likes - 1 : likes + 1);
                           }}
-                          className={`flex items-center gap-1.5 transition-colors ${
-                            liked ? "text-rose-400 font-semibold" : "hover:text-rose-400"
-                          }`}
+                          className={cn(
+                            "flex items-center gap-1.5 transition-colors",
+                            liked ? "text-rose-400 font-semibold" : "hover:text-rose-400",
+                          )}
                         >
-                          <Heart className={`w-3.5 h-3.5 ${liked ? "fill-rose-400" : ""}`} />
+                          <Heart className={cn("w-3.5 h-3.5", liked ? "fill-rose-400" : "")} />
                           <span>{likes}</span>
                         </button>
                         <Link href="/sign-up">

@@ -20,6 +20,9 @@ import { toast } from "sonner";
 import { ACTION_ERROR_MESSAGE } from "@/types/action";
 import { AnimatePresence, motion } from "motion/react";
 import { usePost } from "@/lib/stores";
+import { MAX_POST_IMAGES, POST_CHAR_LIMIT } from "@/config/constants";
+import { overlayButton, overlayChip, toolbarButton } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 import MentionTextarea from "@/components/ui/mention-textarea";
 import EmojiPicker from "@/components/ui/emoji-picker";
@@ -35,8 +38,8 @@ export default function InputPost({ user }: { user?: User | null }) {
   const [activeSlide, setActiveSlide] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
-  const maxImages = 6;
-  const maxChars = 280;
+  const maxImages = MAX_POST_IMAGES;
+  const maxChars = POST_CHAR_LIMIT;
   const charsLeft = maxChars - content.length;
   const isOverLimit = charsLeft < 0;
   const canSubmit =
@@ -232,7 +235,10 @@ export default function InputPost({ user }: { user?: User | null }) {
                       <button
                         type="button"
                         onClick={handlePrevSlide}
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/65 hover:bg-black/85 text-white/90 hover:text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform,opacity] active:scale-95 cursor-pointer opacity-80 hover:opacity-100"
+                        className={cn(
+                          overlayButton,
+                          "absolute left-2.5 top-1/2 -translate-y-1/2 z-20 opacity-80 hover:opacity-100",
+                        )}
                         aria-label="Previous image"
                         title="Previous photo"
                       >
@@ -242,7 +248,10 @@ export default function InputPost({ user }: { user?: User | null }) {
                       <button
                         type="button"
                         onClick={handleNextSlide}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/65 hover:bg-black/85 text-white/90 hover:text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform,opacity] active:scale-95 cursor-pointer opacity-80 hover:opacity-100"
+                        className={cn(
+                          overlayButton,
+                          "absolute right-2.5 top-1/2 -translate-y-1/2 z-20 opacity-80 hover:opacity-100",
+                        )}
                         aria-label="Next image"
                         title="Next photo"
                       >
@@ -254,7 +263,7 @@ export default function InputPost({ user }: { user?: User | null }) {
                   {/* Top Overlay: Attachment Metadata Pill & Remove Button */}
                   <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10">
                     {/* File Metadata & Multi-image counter pill */}
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/15 text-white text-[11px] font-medium max-w-[70%] truncate">
+                    <div className={cn(overlayChip, "flex items-center gap-1.5 max-w-[70%] truncate")}>
                       <ImagePlus className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                       {previewUrls.length > 1 && (
                         <span className="font-medium text-white shrink-0">
@@ -277,7 +286,7 @@ export default function InputPost({ user }: { user?: User | null }) {
                           e.stopPropagation();
                           removeImage(activeSlide);
                         }}
-                        className="p-1.5 rounded-full bg-black/65 hover:bg-rose-600 text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform] pointer-events-auto hover:scale-105 active:scale-95 cursor-pointer"
+                        className="p-1.5 rounded-full bg-black/65 hover:bg-rose-600 text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform] pointer-events-auto hover:scale-105 active:scale-95"
                         aria-label={`Remove photo ${activeSlide + 1}`}
                         title="Remove this photo"
                       >
@@ -297,10 +306,10 @@ export default function InputPost({ user }: { user?: User | null }) {
                             e.stopPropagation();
                             setActiveSlide(idx);
                           }}
-                          className={`rounded-full transition-[width,background-color] duration-200 cursor-pointer ${idx === activeSlide
-                              ? "w-5 h-1.5 bg-foreground"
-                              : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
-                            }`}
+                          className={cn(
+                            "rounded-full transition-[width,background-color] duration-200",
+                            idx === activeSlide ? "w-5 h-1.5 bg-foreground" : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80",
+                          )}
                           aria-label={`Go to slide ${idx + 1}`}
                         />
                       ))}
@@ -309,7 +318,7 @@ export default function InputPost({ user }: { user?: User | null }) {
 
                   {/* Bottom Right: Click to Preview Indicator */}
                   <div className="absolute bottom-3 right-3 pointer-events-none z-10">
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/15 text-white text-[11px] font-medium group-hover/preview:bg-black/80 transition-colors duration-200">
+                    <div className={cn(overlayChip, "flex items-center gap-1.5 group-hover/preview:bg-black/80 transition-colors duration-200")}>
                       <Maximize2 className="w-3.5 h-3.5 text-white/90" />
                       <span>Click to view</span>
                     </div>
@@ -334,7 +343,7 @@ export default function InputPost({ user }: { user?: User | null }) {
                   type="button"
                   onClick={handleButtonClick}
                   disabled={loading || files.length >= maxImages}
-                  className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-foreground/[0.05] transition-colors duration-200 disabled:opacity-50 cursor-pointer"
+                  className={toolbarButton}
                   title={
                     files.length >= maxImages
                       ? `Max ${maxImages} images reached`
@@ -365,12 +374,10 @@ export default function InputPost({ user }: { user?: User | null }) {
               <div className="flex items-center gap-3">
                 {content.length > 0 && (
                   <span
-                    className={`text-xs font-mono transition-colors ${isOverLimit
-                        ? "text-rose-500 font-medium"
-                        : charsLeft < 20
-                          ? "text-amber-500 font-medium"
-                          : "text-muted-foreground/60"
-                      }`}
+                    className={cn(
+                      "text-xs font-mono transition-colors",
+                      isOverLimit ? "text-rose-500 font-medium" : charsLeft < 20 ? "text-amber-500 font-medium" : "text-muted-foreground/60",
+                    )}
                   >
                     {charsLeft}
                   </span>
@@ -380,7 +387,7 @@ export default function InputPost({ user }: { user?: User | null }) {
                   onClick={handleSubmit}
                   disabled={!canSubmit}
                   size="sm"
-                  className="rounded-full px-5 py-2 font-medium text-xs sm:text-sm bg-foreground text-background hover:bg-foreground/90 transition-transform duration-200 active:scale-95 disabled:opacity-40 border-0 cursor-pointer"
+                  className="rounded-full px-5 py-2 font-medium text-xs sm:text-sm bg-foreground text-background hover:bg-foreground/90 transition-transform duration-200 active:scale-95 disabled:opacity-40 border-0"
                 >
                   {loading ? (
                     <>

@@ -1,19 +1,16 @@
-import { onAuthenticateUser } from "@/server/data/user";
+import { getCurrentUser } from "@/server/session";
 import { createUploadthing, type FileRouter } from "uploadthing/next";
+
+import { MAX_POST_IMAGES } from "@/config/constants";
 import { UploadThingError } from "uploadthing/server";
 
 const f = createUploadthing();
 
+/** Who is uploading, or null. Both routes gate on this. */
 const auth = async () => {
-  const { user } = await onAuthenticateUser()
-  if(!user){
-    return
-  }
-
-  return {
-    id: user.id
-  }
-}; // Fake auth function
+  const user = await getCurrentUser();
+  return user ? { id: user.id } : null;
+};
 
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
@@ -25,7 +22,7 @@ export const ourFileRouter = {
        * @see https://docs.uploadthing.com/file-routes#route-config
        */
       maxFileSize: "8MB",
-      maxFileCount: 6,
+      maxFileCount: MAX_POST_IMAGES,
     },
   })
     // Set permissions and file types for this FileRoute
@@ -46,6 +43,27 @@ export const ourFileRouter = {
       console.log("file url", file.ufsUrl);
 
       // !!! Whatever is returned here is sent to the clientside `onClientUploadComplete` callback
+      return { uploadedBy: metadata.userId };
+    }),
+
+  /**
+   * Avatar and cover art.
+   *
+   * Separate from `imageUploader` so the limits can state what this is: exactly
+   * one image, and a smaller ceiling than a post's gallery needs.
+   */
+  profileImageUploader: f({
+    image: {
+      maxFileSize: "4MB",
+      maxFileCount: 1,
+    },
+  })
+    .middleware(async () => {
+      const user = await auth();
+      if (!user) throw new UploadThingError("Unauthorized");
+      return { userId: user.id };
+    })
+    .onUploadComplete(async ({ metadata }) => {
       return { uploadedBy: metadata.userId };
     }),
 } satisfies FileRouter;

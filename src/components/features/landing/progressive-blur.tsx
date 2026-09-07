@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { cn } from "@/lib/utils";
 
 interface ProgressiveBottomBlurProps {
   height?: string;
@@ -21,7 +22,7 @@ export default function ProgressiveBottomBlur({
   return (
     <div
       aria-hidden="true"
-      className={`fixed bottom-0 left-0 right-0 z-40 pointer-events-none ${height} ${className}`}
+      className={cn("fixed bottom-0 left-0 right-0 z-40 pointer-events-none", height, className)}
     >
       {/* Layer 1: 1px subtle micro-blur */}
       <div

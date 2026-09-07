@@ -153,7 +153,7 @@ export default function ReportModal({
                     type="button"
                     onClick={() => setSelectedReason(reason.id)}
                     className={cn(
-                      "w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-colors cursor-pointer",
+                      "w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-colors",
                       isSelected
                         ? "border-rose-500/80 bg-rose-500/5 ring-1 ring-rose-500/30"
                         : "border-border/60 hover:border-border hover:bg-accent/40"
@@ -216,7 +216,7 @@ export default function ReportModal({
                 variant="outline"
                 disabled={loading}
                 onClick={onClose}
-                className="rounded-xl px-4 text-xs font-semibold cursor-pointer"
+                className="rounded-xl px-4 text-xs font-semibold"
               >
                 Cancel
               </Button>
@@ -224,7 +224,7 @@ export default function ReportModal({
                 type="button"
                 disabled={loading}
                 onClick={handleSubmit}
-                className="rounded-xl px-4 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
+                className="rounded-xl px-4 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white"
               >
                 {loading ? (
                   <>

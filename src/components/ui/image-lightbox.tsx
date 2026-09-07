@@ -14,6 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { overlayButton } from "@/lib/ui";
 
 export interface ImageLightboxProps {
   isOpen: boolean;
@@ -48,13 +50,17 @@ export default function ImageLightbox({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
 
-  // Sync index when opening
-  useEffect(() => {
+  // Start each opening at the image that was clicked. Adjusting during render
+  // rather than in an effect means the first painted frame is already correct -
+  // no flash of the previous image.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setCurrentIndex(Math.min(initialIndex, Math.max(0, allImages.length - 1)));
       setIsZoomed(false);
     }
-  }, [isOpen, initialIndex, allImages.length]);
+  }
 
   const activeSrc = allImages[currentIndex] || src || "";
 
@@ -182,7 +188,7 @@ export default function ImageLightbox({
               <button
                 type="button"
                 onClick={() => setIsZoomed((prev) => !prev)}
-                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/90 flex items-center justify-center transition-[color,background-color,border-color,transform] cursor-pointer border border-white/10"
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/90 flex items-center justify-center transition-[color,background-color,border-color,transform] border border-white/10"
                 title={isZoomed ? "Zoom out" : "Zoom in"}
                 aria-label={isZoomed ? "Zoom out" : "Zoom in"}
               >
@@ -225,7 +231,7 @@ export default function ImageLightbox({
                   e.stopPropagation();
                   onClose();
                 }}
-                className="flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white justify-center transition-[color,background-color,border-color,transform] cursor-pointer border border-white/15 shrink-0"
+                className="flex items-center gap-1.5 h-9 px-2.5 sm:px-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white justify-center transition-[color,background-color,border-color,transform] border border-white/15 shrink-0"
                 title="Close (Esc)"
                 aria-label="Close image viewer"
               >
@@ -245,7 +251,10 @@ export default function ImageLightbox({
                 e.stopPropagation();
                 handlePrev();
               }}
-              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/85 text-white/90 hover:text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform] active:scale-95 cursor-pointer"
+              className={cn(
+                overlayButton,
+                "absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 p-2.5 sm:p-3",
+              )}
               title="Previous image (Left arrow)"
               aria-label="Previous image"
             >
@@ -261,7 +270,10 @@ export default function ImageLightbox({
                 e.stopPropagation();
                 handleNext();
               }}
-              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 p-2.5 sm:p-3 rounded-full bg-black/60 hover:bg-black/85 text-white/90 hover:text-white backdrop-blur-md border border-white/15 transition-[color,background-color,border-color,transform] active:scale-95 cursor-pointer"
+              className={cn(
+                overlayButton,
+                "absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 p-2.5 sm:p-3",
+              )}
               title="Next image (Right arrow)"
               aria-label="Next image"
             >
@@ -291,9 +303,10 @@ export default function ImageLightbox({
                   duration: 0.18,
                   ease: "easeOut",
                 }}
-                className={`relative max-w-full max-h-full flex items-center justify-center transition-[transform] duration-200 ease-out ${
-                  isZoomed ? "cursor-zoom-out my-auto" : "cursor-zoom-in"
-                }`}
+                className={cn(
+                  "relative max-w-full max-h-full flex items-center justify-center transition-[transform] duration-200 ease-out",
+                  isZoomed ? "cursor-zoom-out my-auto" : "cursor-zoom-in",
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsZoomed((prev) => !prev);
@@ -329,11 +342,10 @@ export default function ImageLightbox({
                       setIsZoomed(false);
                       setCurrentIndex(idx);
                     }}
-                    className={`relative w-12 h-12 rounded-xl overflow-hidden border transition-[opacity,transform,border-color] cursor-pointer shrink-0 ${
-                      idx === currentIndex
-                        ? "border-primary ring-2 ring-primary/40 scale-105"
-                        : "border-white/20 opacity-60 hover:opacity-100"
-                    }`}
+                    className={cn(
+                      "relative w-12 h-12 rounded-xl overflow-hidden border transition-[opacity,transform,border-color] shrink-0",
+                      idx === currentIndex ? "border-primary ring-2 ring-primary/40 scale-105" : "border-white/20 opacity-60 hover:opacity-100",
+                    )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img

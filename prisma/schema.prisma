@@ -16,6 +16,7 @@ model User {
   username              String         @unique
   email                 String         @unique
   emailVerified         Boolean        @default(false)
+  role                  String         @default("USER") // USER, ADMIN
   image                 String?
   photo                 String?
   password              String?
@@ -30,6 +31,7 @@ model User {
   posts                 Post[]
   comments              Comment[]
   likes                 Like[]
+  commentLikes          CommentLike[]
   bookmarks             Bookmark[]
   reports               Report[]       @relation("UserReports")
   followers             Follow[]       @relation("FollowingRelation")
@@ -130,8 +132,25 @@ model Comment {
   parentId  String?
   replies   Comment[] @relation("CommentReplies")
 
+  likes     CommentLike[]
+
   @@index([postId, parentId])
   @@index([parentId])
+}
+
+// Model untuk Like pada Komentar.
+// Terpisah dari Like agar sebuah baris tidak perlu menebak apakah ia menunjuk
+// post atau komentar - constraint unik-nya pun jadi jujur per jenis.
+model CommentLike {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String
+
+  @@unique([authorId, commentId]) // Satu user hanya bisa like 1x per komentar
+  @@index([commentId])
 }
 
 // Model untuk Like
